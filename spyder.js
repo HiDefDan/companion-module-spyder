@@ -15,6 +15,22 @@ const Upgradereg = []
 // a fast feedback-latency setting doesn't also speed this up).
 const DISCOVERY_INTERVAL_MS = 60000
 
+// From the manual's "Command processor responses" table (page 10) -- the
+// first character of every response. 6 (Checksum) is documented as
+// reserved/unused; there's no sequence number or echo of the original
+// command anywhere in a response, so matching a response back to the
+// request that caused it relies entirely on send/receive ordering (see
+// the comment on the single-outstanding-command discipline in cueCmd).
+const RESULT_CODE_NAMES = {
+	0: 'Success',
+	1: 'Empty',
+	2: 'Header (invalid command)',
+	3: 'Argument count',
+	4: 'Argument value',
+	5: 'Execution',
+	6: 'Checksum (reserved)',
+}
+
 // Fixed 10-byte UDP header the Spyder protocol requires in front of every
 // command: ASCII "spyder" + four 0x00 bytes.
 const HEADER_BYTES = Buffer.from([0x73, 0x70, 0x79, 0x64, 0x65, 0x72, 0x00, 0x00, 0x00, 0x00])
@@ -86,6 +102,12 @@ class SpyderInstance extends InstanceBase {
 		}
 	}
 
+	// Only ever lets one command be outstanding at a time -- the protocol
+	// gives responses no sequence number or echo of the request, so the
+	// only way a response can be reliably matched to its request is if
+	// there's never more than one candidate for it to match against. Call
+	// this (not sendCmd directly) from anywhere that might run while
+	// something else could already be in flight.
 	cueCmd = async (cmd) => {
 		if (cmd !== undefined) {
 			if (this.pending.length) {
@@ -105,10 +127,10 @@ class SpyderInstance extends InstanceBase {
 			c = c.slice(0, 2)
 		}
 		c = c.join(' ')
-		//this.log('info', `Sending ${cmd} to ${this.config.host}`)
 
 		if (this.udp !== undefined) {
 			const packet = buildPacket(cmd)
+			this.log('info', `Sending: ${cmd}`)
 			this.log('debug', `Sending hex: ${packet.toString('hex')}`)
 			await this.udp.send(packet)
 			// save cmd for to store with next incoming response
@@ -193,13 +215,25 @@ class SpyderInstance extends InstanceBase {
 			this.udp.on('data', async (data) => {
 				let msg = data.toString()
 				let cmd = this.pending.shift()
-				if (cmd == undefined || cmd.cmd.includes('NaN')) {
-					return // unexpected response
+				if (cmd == undefined) {
+					// Nothing was outstanding to match this to -- a stale/late
+					// response after a resend assumed it lost, most likely. See
+					// the comment on cueCmd re: why this shouldn't normally happen.
+					this.log('warn', `Received a response with nothing pending to match it to -- discarding: ${msg}`)
+					return
+				}
+				if (cmd.cmd.includes('NaN')) {
+					this.log('warn', `Discarding malformed pending entry '${cmd.cmd}' matched to response: ${msg}`)
+					return
 				}
 
-				// this.log('info', `Rcvd: ${this.nextCmd.length}:(${cmd.cmd}) ${msg}`)
-
 				const cmds = cmd.cmd.split(' ')
+				const resultCode = msg.slice(0, 1)
+				const resultName = RESULT_CODE_NAMES[resultCode] ?? `Unknown code ${resultCode}`
+				this.log(
+					resultCode === '0' || resultCode === '1' ? 'info' : 'warn',
+					`Received for '${cmd.cmd}': ${resultName} -- ${msg}`,
+				)
 
 				switch (msg.slice(0, 1)) {
 					case '0': // all good

@@ -53,6 +53,22 @@ adding a source or command key -- use the "Refresh Sources / Command
 Keys Now" action (multi-select which type(s)), or drag the "Refresh
 Sources & Command Keys Now" preset onto a button.
 
+**Logging**
+
+Every send is logged readably at `info` (`Sending: SRA WF%20PGM 6`), with
+the exact hex also logged at `debug` for wire-level inspection. Every
+response is logged too, decoded against the protocol's result-code table
+(`info` for Success/Empty, `warn` for anything else -- Header/invalid
+command, Argument count/value, Execution, or an unexpected/unmatched
+response). The protocol gives responses no sequence number and no echo
+of the request that caused them -- correctness depends entirely on never
+having more than one command outstanding at once, which is why every
+action goes through the same queue as the periodic poll rather than
+sending directly. A `warn` saying a response arrived with nothing
+pending to match it to is the one case that can still happen (e.g. a
+genuinely late response racing a timeout-triggered resend) -- rare, and
+now visible instead of silently misattributed.
+
 **Layer count validation**
 
 The real layer count is read via `RLC` at connect (minus the 2 background

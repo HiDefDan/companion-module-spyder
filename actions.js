@@ -1,7 +1,11 @@
 import { Regex } from '@companion-module/base'
 
 export function compileActionDefinitions(self) {
-	const sendCmd = self.sendCmd
+	// Every action here goes through cueCmd, not sendCmd directly -- every
+	// one of them (not just sra) could otherwise fire while a poll
+	// response is still outstanding, and responses carry no sequence
+	// number to recover from that. See the comment on cueCmd in spyder.js.
+	const sendCmd = self.cueCmd
 
 	// Live-discovered sources (RRL 6, polled in spyder.js) -- SRA addresses a
 	// source by name, so the dropdown's values are names, not ids. Rebuilt on

@@ -38,6 +38,19 @@ not one per commit.
   ("Refresh Sources & Command Keys Now", Utility category).
 
 ### Changed
+- All actions now go through `cueCmd` instead of calling `sendCmd`
+  directly (one-line fix: `compileActionDefinitions`'s `sendCmd` alias
+  now points at `self.cueCmd`). The protocol gives responses no sequence
+  number or echo of the originating request, so correctness depends
+  entirely on never having more than one command outstanding at a time;
+  every stock action (not just `sra`) was bypassing that discipline and
+  could previously fire while a poll response was still in flight.
+- Every send is now logged readably at `info` (e.g. `Sending: SRA
+  WF%20PGM 6`), not just as hex at `debug`. Every response is now
+  logged too (previously not logged at all), decoded against the
+  protocol's result-code table and leveled `info` (Success/Empty) or
+  `warn` (everything else, including a response that arrives with
+  nothing pending to match it to).
 - `sra` now immediately follows its `SRA` send with an `RLS` for exactly
   the layer(s) it just applied, so `layer_source_is` confirms the change
   right away instead of waiting on the next periodic poll.
