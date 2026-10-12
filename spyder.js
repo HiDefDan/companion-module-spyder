@@ -36,7 +36,6 @@ const RESULT_CODE_NAMES = {
 // or send anything.
 const COMMAND_NAMES = {
 	RLC: 'Request Layer Count',
-	RBL: 'Request Basic Preset List',
 	RRL: 'Request Register List',
 	RRD: 'Request Register Detail',
 	SCR: 'Script Cue Request',
@@ -479,7 +478,6 @@ class SpyderInstance extends InstanceBase {
 				this.setStatus(InstanceStatus.Ok, 'UDP Listening')
 				// send a simple query (how many layers)
 				await this.cueCmd('RLC')
-				await this.cueCmd('RBL')
 				this.reg = {}
 				this.script2reg = {}
 				this.sources = {} // keyed by source register id; feeds src_<N> variables and the sra action's dropdown

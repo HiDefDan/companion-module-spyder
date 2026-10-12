@@ -61,6 +61,9 @@ not one per commit.
   of `Success -- 0 1`. Action commands have a bare `<Result Code>`
   response per the manual, so they're unaffected -- nothing more to
   decode there.
+- Removed the `RBL` (Request Basic Preset List) call at connect. It was
+  already in the stock module, inherited unchanged, but never had a
+  response handler -- nothing used it, so no reason to keep sending it.
 - `sra` now immediately follows its `SRA` send with an `RLS` for exactly
   the layer(s) it just applied, so `layer_source_is` confirms the change
   right away instead of waiting on the next periodic poll.
