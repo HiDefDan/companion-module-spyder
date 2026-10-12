@@ -5,6 +5,20 @@ import { GetFeedbackDefinitions } from './feedbacks.js'
 
 const Upgradereg = []
 
+// Fixed 10-byte UDP header the Spyder protocol requires in front of every
+// command: ASCII "spyder" + four 0x00 bytes.
+const HEADER_BYTES = Buffer.from([0x73, 0x70, 0x79, 0x64, 0x65, 0x72, 0x00, 0x00, 0x00, 0x00])
+
+// Builds the exact byte buffer to put on the wire for a command string,
+// rather than handing a JS string to the socket and leaving Node to pick an
+// encoding. The command text is pure ASCII (including any literal '%20'
+// sequences an action has already substituted for in-value spaces), so a
+// single-byte-per-char Buffer is always correct here -- this also means
+// what gets logged as hex is byte-for-byte what hits the wire.
+function buildPacket(cmd) {
+	return Buffer.concat([HEADER_BYTES, Buffer.from(cmd, 'latin1')])
+}
+
 class SpyderInstance extends InstanceBase {
 	constructor(internal) {
 		// super-constructor
@@ -36,11 +50,29 @@ class SpyderInstance extends InstanceBase {
 		//this.log('info', `Sending ${cmd} to ${this.config.host}`)
 
 		if (this.udp !== undefined) {
-			await this.udp.send('spyder\x00\x00\x00\x00' + cmd)
+			const packet = buildPacket(cmd)
+			this.log('debug', `Sending hex: ${packet.toString('hex')}`)
+			await this.udp.send(packet)
 			// save cmd for to store with next incoming response
 			this.pending.push({ cmd: c, sent: now })
 			this.lastCmd = cmd
 		}
+	}
+
+	// layer is a protocol layer id (string); name is '' when no source is
+	// currently assigned to that layer.
+	setLayerSource = (layer, name) => {
+		if (this.layerSource[layer] !== name) {
+			this.layerSource[layer] = name
+			this.checkFeedbacks('layer_source_is')
+		}
+	}
+
+	// humanLayer is the layer number as entered by the user (1-based,
+	// matching Spyder Studio's own numbering); converts to the protocol id
+	// (+1) this module tracks responses under.
+	getLayerSource = (humanLayer) => {
+		return this.layerSource[String(Number(humanLayer) + 1)] ?? ''
 	}
 
 	async init(config) {
@@ -71,6 +103,12 @@ class SpyderInstance extends InstanceBase {
 		this.pending = []
 		this.nextCmd = []
 		this.status = {}
+		this.layerSource = {} // keyed by protocol layer id (human layer + 1)
+		this.watchedLayers = String(this.config.watchLayers ?? '')
+			.split(/[\s,]+/)
+			.map((s) => s.trim())
+			.filter((s) => s.length > 0)
+			.map((humanLayer) => String(Number(humanLayer) + 1))
 		this.init_udp()
 	}
 
@@ -104,6 +142,8 @@ class SpyderInstance extends InstanceBase {
 
 				// this.log('info', `Rcvd: ${this.nextCmd.length}:(${cmd.cmd}) ${msg}`)
 
+				const cmds = cmd.cmd.split(' ')
+
 				switch (msg.slice(0, 1)) {
 					case '0': // all good
 						this.updateStatus(InstanceStatus.Ok, 'Connected')
@@ -112,7 +152,6 @@ class SpyderInstance extends InstanceBase {
 							resp: msg.slice(2),
 							lag: Date.now() - cmd.sent,
 						}
-						const cmds = cmd.cmd.split(' ')
 						let newReg = false
 						let newNames = false
 
@@ -157,6 +196,9 @@ class SpyderInstance extends InstanceBase {
 									this.checkFeedbacks('inp_ok')
 								}
 								break
+							case 'RLS':
+								this.setLayerSource(cmds[1], decodeURIComponent(msg.slice(2).split(' ')[0] || ''))
+								break
 							case 'RRD':
 								const val = msg.split(' ')
 								if (val.length != 4 || cmds[2] == 'NaN') {
@@ -185,6 +227,11 @@ class SpyderInstance extends InstanceBase {
 							this.variableValues = {}
 						}
 
+						break
+					case '1': // Empty -- e.g. RLS on a layer with no source currently assigned
+						if (cmds[0] === 'RLS') {
+							this.setLayerSource(cmds[1], '')
+						}
 						break
 				}
 				if (this.nextCmd.length) {
@@ -232,7 +279,11 @@ class SpyderInstance extends InstanceBase {
 				}
 			}
 		} else {
-			// grab register names
+			// queue a layer-source read-back for each watched layer, then
+			// fall through to the existing register-names poll
+			for (const layer of this.watchedLayers) {
+				this.nextCmd.push(`RLS ${layer}`)
+			}
 			const cmd = 'RRL 4 -1'
 			await this.cueCmd(cmd)
 			this.lastCount = 0
@@ -251,6 +302,13 @@ class SpyderInstance extends InstanceBase {
 				label: 'Target IP',
 				width: 6,
 				regex: Regex.IP,
+			},
+			{
+				type: 'textinput',
+				id: 'watchLayers',
+				label: 'Layers to monitor for live source feedback (human-numbered, space/comma separated)',
+				width: 12,
+				default: '',
 			},
 		]
 	}

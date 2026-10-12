@@ -4,6 +4,35 @@ export function compileActionDefinitions(self) {
 	const sendCmd = self.sendCmd
 
 	return {
+		'sra': {
+			name: 'Source Apply (assign source to layer)',
+			options: [
+				{
+					type: 'textinput',
+					label: 'Source Name',
+					id: 'source',
+					default: '',
+				},
+				{
+					type: 'textinput',
+					label: 'Layer(s) (human-numbered, space delimited if more than one)',
+					id: 'lay',
+					default: '1',
+				},
+			],
+			callback: async (action, context) => {
+				const source = (await context.parseVariablesInString(String(action.options.source)))
+					.trim()
+					.replace(/ /g, '%20')
+				const layers = String(action.options.lay)
+					.trim()
+					.split(/\s+/)
+					.map((n) => String(Number(n) + 1))
+					.join(' ')
+				await sendCmd(`SRA ${source} ${layers}`)
+			},
+		},
+
 		'asc': {
 			name: 'Take (Advance Script Cue)',
 			options: [
