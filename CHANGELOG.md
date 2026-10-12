@@ -33,6 +33,13 @@ not one per commit.
   response lands.
 
 ### Changed
+- `updateStatus` now only fires on a real transition (new `setStatus`
+  wrapper tracks the last status/message). Previously the success branch
+  called `updateStatus(Ok, 'Connected')` on every single response, so a
+  poll cycle sending a dozen-plus commands logged "Connected" a
+  dozen-plus times for no reason. Note this status was never a real
+  connection check anyway -- UDP has no connection state; it only ever
+  meant "the last command got a well-formed success response."
 - Outgoing commands are now sent as an explicit byte buffer (fixed header +
   command bytes) instead of a plain JS string, so command text reaches the
   device byte-for-byte regardless of Node's string-encoding defaults.

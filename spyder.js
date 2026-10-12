@@ -60,6 +60,20 @@ class SpyderInstance extends InstanceBase {
 
 		this.devMode = process.env.DEVELOPER
 		this.hasError = false
+		this.lastStatus = undefined
+		this.lastStatusMessage = undefined
+	}
+
+	// Only actually calls updateStatus (and so only logs) on a real
+	// transition. Every successful response was previously re-asserting
+	// 'Ok'/'Connected' on its own, which with several responses per poll
+	// cycle made the connection debug log mostly noise.
+	setStatus = (status, message) => {
+		if (status !== this.lastStatus || message !== this.lastStatusMessage) {
+			this.lastStatus = status
+			this.lastStatusMessage = message
+			this.updateStatus(status, message)
+		}
 	}
 
 	cueCmd = async (cmd) => {
@@ -124,14 +138,14 @@ class SpyderInstance extends InstanceBase {
 
 	// When module gets deleted
 	async destroy() {
-		this.updateStatus(InstanceStatus.Disconnected, 'Closed')
+		this.setStatus(InstanceStatus.Disconnected, 'Closed')
 		if (this.udp !== undefined) {
 			this.udp.destroy()
 		}
 	}
 
 	start(msg) {
-		this.updateStatus(InstanceStatus.Connecting, msg)
+		this.setStatus(InstanceStatus.Connecting, msg)
 		this.setActionDefinitions(compileActionDefinitions(this))
 		this.setFeedbackDefinitions(GetFeedbackDefinitions(this))
 		this.pending = []
@@ -154,7 +168,7 @@ class SpyderInstance extends InstanceBase {
 			this.udp.on('error', (error) => {
 				if (!this.hasError) {
 					this.log('debug', `Network error ${err}`)
-					this.updateStatus(InstanceStatus.UnknownError, err.message)
+					this.setStatus(InstanceStatus.UnknownError, err.message)
 					this.log('error', 'Network error: ' + err.message)
 					this.hasError = true
 				}
@@ -177,7 +191,7 @@ class SpyderInstance extends InstanceBase {
 
 				switch (msg.slice(0, 1)) {
 					case '0': // all good
-						this.updateStatus(InstanceStatus.Ok, 'Connected')
+						this.setStatus(InstanceStatus.Ok, 'Connected')
 						// TODO: expected data responses would be decoded and saved here
 						this.status[cmd.cmd] = {
 							resp: msg.slice(2),
@@ -326,7 +340,7 @@ class SpyderInstance extends InstanceBase {
 			})
 
 			this.udp.on('listening', async () => {
-				this.updateStatus(InstanceStatus.Ok, 'UDP Listening')
+				this.setStatus(InstanceStatus.Ok, 'UDP Listening')
 				// send a simple query (how many layers)
 				await this.cueCmd('RLC')
 				await this.cueCmd('RBL')
