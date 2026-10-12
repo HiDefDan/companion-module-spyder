@@ -28,17 +28,18 @@ reaches the device byte-for-byte unchanged.
 
 **Live layer source feedback**
 
-Set "Layers to poll for live source" in the connection's config
-(human-numbered, e.g. `1-3, 10, 15-18`) to have the module poll those
-layers' currently-applied source via `RLS`. On its own this field does
-nothing visible -- it only starts the polling. To actually see anything,
-add the "Layer source is" feedback to a button and point it at the same
-layer number; that feedback is what reads the polled value.
+Every real layer is polled automatically for its currently-applied source
+via `RLS`, once the real layer count is known (see below) -- no config
+needed. Add the "Layer source is" feedback to a button and point it at a
+layer number to see it; the polling by itself is invisible, that feedback
+is what reads the polled value. The traffic this adds is negligible even
+for a large layer count, which is why it isn't made optional.
 
 **Poll interval**
 
-"Poll interval (ms)" in the connection's config controls how often
-register/source/layer-source polling runs (default 2500ms, 500-30000ms).
+"Poll interval (ms)" in the connection's config affects feedback latency
+(default 2500ms, 500-30000ms) -- how often register/source/layer-source
+polling runs.
 
 **Layer count validation**
 
@@ -46,11 +47,9 @@ The real layer count is read via `RLC` at connect (minus the 2 background
 layers Spyder always reports). Source Apply checks any layer number you
 give it against this before sending, logging a warning and dropping only
 the out-of-range ones -- a typo doesn't silently get sent to a layer that
-doesn't exist. "Layers to poll for live source" is pruned the same way
-once `RLC` answers. Neither check applies until that first response
-lands; both fields' regexes do still reject values that could never be a
-real layer number (zero, negative, leading zeros) regardless of connection
-state.
+doesn't exist. Not enforced until that first response lands; its regex
+does still reject values that could never be a real layer number (zero,
+negative, leading zeros) regardless of connection state.
 
 
 --------

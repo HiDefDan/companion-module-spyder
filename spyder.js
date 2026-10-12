@@ -19,26 +19,6 @@ function buildPacket(cmd) {
 	return Buffer.concat([HEADER_BYTES, Buffer.from(cmd, 'latin1')])
 }
 
-// Parses a human-friendly layer list like "1-3, 10, 15-18" into a flat,
-// deduped array of numbers. Malformed tokens are silently skipped rather
-// than throwing, so a typo just omits that layer instead of breaking poll.
-function parseLayerList(raw) {
-	const out = []
-	for (const token of String(raw ?? '').split(/[\s,]+/)) {
-		const t = token.trim()
-		if (!t) continue
-		const range = t.match(/^(\d+)-(\d+)$/)
-		if (range) {
-			let [a, b] = [Number(range[1]), Number(range[2])]
-			if (a > b) [a, b] = [b, a]
-			for (let n = a; n <= b; n++) out.push(n)
-		} else if (/^\d+$/.test(t)) {
-			out.push(Number(t))
-		}
-	}
-	return [...new Set(out)]
-}
-
 // Updates `store` (an object keyed by register id) from a full
 // `RRL <type> -1` response's parsed id/name pairs. '-1' as the page number
 // means the response is the complete, authoritative list, so anything
@@ -158,7 +138,7 @@ class SpyderInstance extends InstanceBase {
 		this.nextCmd = []
 		this.status = {}
 		this.layerSource = {} // keyed by protocol layer id (human layer + 1)
-		this.watchedLayers = parseLayerList(this.config.watchLayers).map((humanLayer) => String(humanLayer + 1))
+		this.watchedLayers = [] // populated once RLC answers -- see the 'RLC' case below
 		this.pollRateMs = Number(this.config.pollRateMs) || 2500
 		this.init_udp()
 	}
@@ -285,21 +265,10 @@ class SpyderInstance extends InstanceBase {
 								const logical = parseInt(msg.split(' ')[1])
 								if (!isNaN(logical)) {
 									this.layerCount = logical - 2
-
-									// "Layers to monitor" was parsed at start(), before this
-									// response could possibly have arrived, so it couldn't be
-									// bounds-checked yet -- prune it now against the real count.
-									const before = this.watchedLayers.length
-									this.watchedLayers = this.watchedLayers.filter(
-										(protocolLayer) => Number(protocolLayer) - 1 <= this.layerCount,
-									)
-									const dropped = before - this.watchedLayers.length
-									if (dropped > 0) {
-										this.log(
-											'warn',
-											`"Layers to monitor" had ${dropped} layer(s) beyond this Spyder's ${this.layerCount} layers -- dropped`,
-										)
-									}
+									// Poll every real layer for live source feedback -- the
+									// measured traffic from this is negligible even at a large
+									// layer count, so there's no reason to make this opt-in.
+									this.watchedLayers = Array.from({ length: this.layerCount }, (_, i) => String(i + 2))
 								}
 								break
 							}
@@ -420,23 +389,9 @@ class SpyderInstance extends InstanceBase {
 				regex: Regex.IP,
 			},
 			{
-				type: 'textinput',
-				id: 'watchLayers',
-				label:
-					'Layers to poll for live source, required by the "Layer source is" feedback -- listing a layer ' +
-					'here only starts polling it, it does not show feedback by itself (human-numbered, e.g. "1-3, 10, 15-18")',
-				width: 12,
-				default: '',
-				// Rejects 0, negatives, leading zeros and other garbage that can
-				// never be a real layer number -- the live upper bound (this
-				// Spyder's actual layer count) can't be checked here since regex
-				// is static, so that's enforced separately once RLC answers.
-				regex: '/^\\s*$|^\\s*[1-9]\\d*(?:-[1-9]\\d*)?(?:(?:\\s*,\\s*|\\s+)[1-9]\\d*(?:-[1-9]\\d*)?)*\\s*$/',
-			},
-			{
 				type: 'number',
 				id: 'pollRateMs',
-				label: 'Poll interval (ms) -- register/source/layer-source polling',
+				label: 'Poll interval (ms) -- affects feedback latency',
 				width: 6,
 				default: 2500,
 				min: 500,
