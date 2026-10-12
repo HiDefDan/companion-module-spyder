@@ -3,11 +3,17 @@
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 History starts here at 2.4.0 — earlier versions weren't tracked in this file.
 
-## [2.4.1]
+## [2.4.3]
 
 ### Changed
-- "Layers to monitor" now accepts ranges and comma lists (e.g.
-  `1-3, 10, 15-18`) instead of requiring every layer spelled out.
+- Command key variable description relabelled from "Register N name" to
+  "Command Key: <name>" -- "Register" is internal protocol terminology;
+  the description now also shows the key's actual human-given name and
+  stays in sync if that name is changed in Spyder Studio.
+
+## [2.4.2]
+
+### Changed
 - Each command key now exposes exactly one `r_name_<RegisterID+1>` variable.
   Previously a second, duplicate variable (`s_name_<ScriptID>`) was also
   created for the same key, since Register ID and Script ID are separate
@@ -15,6 +21,12 @@ History starts here at 2.4.0 — earlier versions weren't tracked in this file.
   Script-ID-keyed `SCR` poll that fed it is also removed, halving the
   per-register poll traffic; addressing a key by Script ID (via
   `script2reg`) still works for feedbacks/actions that want it.
+
+## [2.4.1]
+
+### Changed
+- "Layers to monitor" now accepts ranges and comma lists (e.g.
+  `1-3, 10, 15-18`) instead of requiring every layer spelled out.
 
 ## [2.4.0]
 

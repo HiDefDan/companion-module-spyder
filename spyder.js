@@ -182,17 +182,26 @@ class SpyderInstance extends InstanceBase {
 											let name = decodeURIComponent(r[i * 2 + 1])
 											let rr = this.reg[id]
 											if (rr === undefined) {
-												rr = { id, active: false, scriptId: null }
-												this.variableDefs.push({ name: `Register ${id + 1} name`, variableId: `r_name_${id + 1}` })
+												rr = { id, active: false, scriptId: null, name: '' }
 												newReg = true
 											}
 											if (rr.name != name) {
-												rr.name = decodeURIComponent(r[i * 2 + 1])
+												rr.name = name
 												this.variableValues[`r_name_${id + 1}`] = name
 												newNames = true
+												newReg = true // description text below embeds the name; refresh it too
 											}
-											this.reg[r[i * 2]] = rr
+											this.reg[id] = rr
 										}
+
+										// Rebuilt (not incrementally pushed) so a renamed command key's
+										// description stays in sync -- labelled "Command Key", the term
+										// the user actually sees in Spyder Studio, rather than the
+										// internal protocol term "Register".
+										this.variableDefs = Object.values(this.reg).map((reg) => ({
+											name: `Command Key: ${reg.name || '(unnamed)'}`,
+											variableId: `r_name_${reg.id + 1}`,
+										}))
 
 										for (let s in this.reg) {
 											await this.cueCmd(`RRD 4 ${this.reg[s].id}`)

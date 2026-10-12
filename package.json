@@ -1,6 +1,6 @@
 {
 	"name": "christie-spyder",
-	"version": "2.4.2",
+	"version": "2.4.3",
 	"main": "spyder.js",
 	"type": "module",
 	"scripts": {
