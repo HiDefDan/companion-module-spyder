@@ -8,6 +8,7 @@
 * Recall Script Cue (Script, Cue)
 * Source Apply (assign a source to one or more layers)
 * Refresh Sources / Command Keys Now (force an immediate re-fetch)
+* Force Server Save (also available as a preset)
 * Transition Layer(s)
 * Freeze Layer(s)
 * Background Transition

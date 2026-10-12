@@ -36,6 +36,9 @@ not one per commit.
   for right after adding/renaming/deleting one rather than waiting out
   the cache interval below. Also available as a preset
   ("Refresh Sources & Command Keys Now", Utility category).
+- `sav` action (Force Server Save): no options, just sends `SAV` to force
+  the Spyder to persist current config/state to non-volatile storage.
+  Also available as a preset ("Force Server Save", Utility category).
 
 ### Changed
 - All actions now go through `cueCmd` instead of calling `sendCmd`

@@ -50,6 +50,7 @@ const COMMAND_NAMES = {
 	FKR: 'Function Key Recall',
 	OFZ: 'Freeze Output',
 	DMT: 'Device Mixer Transition',
+	SAV: 'Force Server Save',
 }
 
 // Makes %20-escaped argument values readable: splits on the protocol's

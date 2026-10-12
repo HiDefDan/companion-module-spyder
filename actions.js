@@ -19,6 +19,14 @@ export function compileActionDefinitions(self) {
 	}
 
 	return {
+		'sav': {
+			name: 'Force Server Save',
+			options: [],
+			callback: async () => {
+				await sendCmd('SAV')
+			},
+		},
+
 		'rrl_refresh': {
 			name: 'Refresh Sources / Command Keys Now',
 			options: [

@@ -1,5 +1,29 @@
 export function GetPresetDefinitions() {
 	return {
+		force_server_save: {
+			type: 'button',
+			category: 'Utility',
+			name: 'Force Server Save',
+			style: {
+				text: 'Force\nServer Save',
+				size: 'auto',
+				color: 0xffffff,
+				bgcolor: 0x660000,
+			},
+			feedbacks: [],
+			steps: [
+				{
+					down: [
+						{
+							actionId: 'sav',
+							options: {},
+						},
+					],
+					up: [],
+				},
+			],
+		},
+
 		rrl_refresh_both: {
 			type: 'button',
 			category: 'Utility',
