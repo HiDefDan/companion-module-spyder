@@ -3,15 +3,28 @@ import { Regex } from '@companion-module/base'
 export function compileActionDefinitions(self) {
 	const sendCmd = self.sendCmd
 
+	// Live-discovered sources (RRL 6, polled in spyder.js) -- SRA addresses a
+	// source by name, so the dropdown's values are names, not ids. Rebuilt on
+	// every call, which spyder.js re-triggers (setActionDefinitions) whenever
+	// the source list actually changes.
+	const sourceChoices = Object.values(self.sources ?? {})
+		.sort((a, b) => a.id - b.id)
+		.map((src) => ({ id: src.name, label: src.name || `(unnamed, id ${src.id + 1})` }))
+	if (sourceChoices.length === 0) {
+		sourceChoices.push({ id: '', label: '(no sources discovered yet -- type a name, or wait for next poll)' })
+	}
+
 	return {
 		'sra': {
 			name: 'Source Apply (assign source to layer)',
 			options: [
 				{
-					type: 'textinput',
+					type: 'dropdown',
 					label: 'Source Name',
 					id: 'source',
-					default: '',
+					default: sourceChoices[0].id,
+					choices: sourceChoices,
+					allowCustom: true,
 				},
 				{
 					type: 'textinput',

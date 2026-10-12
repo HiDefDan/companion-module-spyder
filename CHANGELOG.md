@@ -16,6 +16,10 @@ not one per commit.
   `1-3, 10, 15-18`): drives a periodic `RLS` poll per watched layer.
 - `layer_source_is` feedback: styles a button based on whether a watched
   layer's live, device-reported source matches a given name.
+- Sources are now polled too (`RRL 6`, same add/rename/delete tracking as
+  command keys), exposed as `src_<N>` variables, and feed the `sra`
+  action's "Source Name" option as a live dropdown (still `allowCustom`,
+  so a typed name or `$(...)` expression still works).
 
 ### Changed
 - Outgoing commands are now sent as an explicit byte buffer (fixed header +
@@ -34,3 +38,6 @@ not one per commit.
   next poll instead of leaving a stale one behind until the connection
   was restarted (`RRL 4 -1` is the full register list, so anything
   previously tracked that's absent from a response has been deleted).
+- Factored the add/rename/delete tracking shared by command keys and
+  sources into one `syncRegisterStore` helper instead of duplicating it;
+  removed a dead commented-out register-polling block it superseded.

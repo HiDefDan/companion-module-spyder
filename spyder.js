@@ -39,6 +39,40 @@ function parseLayerList(raw) {
 	return [...new Set(out)]
 }
 
+// Updates `store` (an object keyed by register id) from a full
+// `RRL <type> -1` response's parsed id/name pairs. '-1' as the page number
+// means the response is the complete, authoritative list, so anything
+// previously tracked that doesn't come back this time has been deleted on
+// the Spyder and is pruned here too. Mutates `store` in place; returns the
+// set of ids that were added or renamed, and the set that were removed, so
+// the caller can decide what to flush (variable values/defs, actions, etc).
+function syncRegisterStore(store, ids, names, makeEntry) {
+	const seenIds = new Set()
+	const changedIds = new Set()
+	const removedIds = new Set()
+	for (let i = 0; i < ids.length; i++) {
+		const id = ids[i]
+		const name = names[i]
+		seenIds.add(id)
+		let entry = store[id]
+		if (entry === undefined) {
+			entry = makeEntry(id)
+			store[id] = entry
+		}
+		if (entry.name !== name) {
+			entry.name = name
+			changedIds.add(id)
+		}
+	}
+	for (const key of Object.keys(store)) {
+		if (!seenIds.has(Number(key))) {
+			delete store[key]
+			removedIds.add(Number(key))
+		}
+	}
+	return { changedIds, removedIds }
+}
+
 class SpyderInstance extends InstanceBase {
 	constructor(internal) {
 		// super-constructor
@@ -172,56 +206,64 @@ class SpyderInstance extends InstanceBase {
 						let newNames = false
 
 						switch (cmds[0]) {
-							case 'RRL':
+							case 'RRL': {
+								// Shared parse: '<Count> <ID1> <Name1> <ID2> <Name2>...'. '-1' as the
+								// page number (always used here) means this is the complete,
+								// authoritative list for the register type, not a partial page.
+								const r = msg.slice(2).split(' ')
+								const count = r.shift()
+								const ids = []
+								const names = []
+								for (let i = 0; i < count; i++) {
+									ids.push(parseInt(r[i * 2]))
+									names.push(decodeURIComponent(r[i * 2 + 1]))
+								}
+
 								switch (cmds[1]) {
-									case '4':
-										let r = msg.slice(2).split(' ')
-										let c = r.shift()
-										const seenIds = new Set()
-										for (let i = 0; i < c; i++) {
-											let id = parseInt(r[i * 2])
-											let name = decodeURIComponent(r[i * 2 + 1])
-											seenIds.add(id)
-											let rr = this.reg[id]
-											if (rr === undefined) {
-												rr = { id, active: false, scriptId: null, name: '' }
-												newReg = true
-											}
-											if (rr.name != name) {
-												rr.name = name
-												this.variableValues[`cKey_rID_${id + 1}`] = name
-												newNames = true
-												newReg = true // description text below embeds the name; refresh it too
-											}
-											this.reg[id] = rr
-										}
-
-										// '-1' as the page number means this response is the full,
-										// authoritative list -- any register we were tracking that
-										// didn't come back this time has been deleted on the Spyder.
-										for (const key of Object.keys(this.reg)) {
-											if (!seenIds.has(Number(key))) {
-												delete this.reg[key]
-												newReg = true
-											}
-										}
-
-										// Rebuilt (not incrementally pushed) so a renamed command key's
-										// description stays in sync -- labelled "Command Key", the term
-										// the user actually sees in Spyder Studio, rather than the
-										// internal protocol term "Register".
-										this.variableDefs = Object.values(this.reg).map((reg) => ({
-											name: `Command Key: ${reg.name || '(unnamed)'}`,
-											variableId: `cKey_rID_${reg.id + 1}`,
+									case '4': {
+										// Command keys. Keyed by Register ID -- see the comment on
+										// `script2reg` below for why Script ID isn't used here too.
+										const { changedIds, removedIds } = syncRegisterStore(this.reg, ids, names, (id) => ({
+											id,
+											active: false,
+											scriptId: null,
+											name: '',
 										}))
+										for (const id of changedIds) {
+											this.variableValues[`cKey_rID_${id + 1}`] = this.reg[id].name
+											newNames = true
+										}
+										if (changedIds.size || removedIds.size) {
+											newReg = true // description text embeds the name; refresh defs too
+										}
 
 										for (let s in this.reg) {
 											await this.cueCmd(`RRD 4 ${this.reg[s].id}`)
 											await this.cueCmd(`SCR ${this.reg[s].id} R`)
 										}
 										break
+									}
+									case '6': {
+										// Sources. SRA addresses a source by name, not by ID, so this
+										// is purely for discovery: feeds src_<N> variables and the
+										// live dropdown choices on the 'sra' action.
+										const { changedIds, removedIds } = syncRegisterStore(this.sources, ids, names, (id) => ({
+											id,
+											name: '',
+										}))
+										for (const id of changedIds) {
+											this.variableValues[`src_${id + 1}`] = this.sources[id].name
+											newNames = true
+										}
+										if (changedIds.size || removedIds.size) {
+											newReg = true
+											this.setActionDefinitions(compileActionDefinitions(this))
+										}
+										break
+									}
 								}
 								break
+							}
 							case 'SCR':
 								let nv = !!(msg.split(' ')[1] == 1)
 								let rr = cmds[2] == 'R' ? cmds[1] : this.script2reg[cmds[1]]
@@ -253,6 +295,20 @@ class SpyderInstance extends InstanceBase {
 								break
 						}
 						if (newReg) {
+							// Rebuilt (not incrementally pushed) from both stores so a
+							// rename/add/delete in either stays in sync, and a command key's
+							// description reads "Command Key: <name>" (the term the user
+							// actually sees in Spyder Studio, not the internal "Register").
+							this.variableDefs = [
+								...Object.values(this.reg).map((reg) => ({
+									name: `Command Key: ${reg.name || '(unnamed)'}`,
+									variableId: `cKey_rID_${reg.id + 1}`,
+								})),
+								...Object.values(this.sources).map((src) => ({
+									name: `Source: ${src.name || '(unnamed)'}`,
+									variableId: `src_${src.id + 1}`,
+								})),
+							]
 							this.setVariableDefinitions(this.variableDefs)
 						}
 						if (newNames) {
@@ -279,6 +335,7 @@ class SpyderInstance extends InstanceBase {
 				await this.cueCmd('RBL')
 				this.reg = {}
 				this.script2reg = {}
+				this.sources = {} // keyed by source register id; feeds src_<N> variables and the sra action's dropdown
 				this.variableDefs = []
 				this.variableValues = {}
 				this.poll()
@@ -312,19 +369,17 @@ class SpyderInstance extends InstanceBase {
 				}
 			}
 		} else {
-			// queue a layer-source read-back for each watched layer, then
-			// fall through to the existing register-names poll
+			// queue a layer-source read-back for each watched layer, plus the
+			// source-list poll, then fall through to the register-names poll
 			for (const layer of this.watchedLayers) {
 				this.nextCmd.push(`RLS ${layer}`)
 			}
+			this.nextCmd.push('RRL 6 -1')
 			const cmd = 'RRL 4 -1'
 			await this.cueCmd(cmd)
 			this.lastCount = 0
 			this.saveLast = cmd
 		}
-		// for (let c of [0, 1, 4, 5, 6, 7, 10]) {
-		// 	this.cueCmd(`RRL ${c} -1`)
-		// }
 	}
 	// Return config fields for web config
 	getConfigFields() {
