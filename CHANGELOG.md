@@ -33,6 +33,12 @@ not one per commit.
   response lands.
 
 ### Changed
+- Sources (`RRL 6`) and command keys (`RRL 4` + `RRD`/`SCR` per key) are
+  now cached instead of re-fetched on every poll tick -- refreshed only
+  every `DISCOVERY_EVERY_N_POLLS` (10) ticks, since they rarely change.
+  `RLS` layer-source checks (the latency-sensitive one) run every tick
+  regardless, and no longer queue behind that traffic on 9 out of 10
+  ticks.
 - `updateStatus` now only fires on a real transition (new `setStatus`
   wrapper tracks the last status/message). Previously the success branch
   called `updateStatus(Ok, 'Connected')` on every single response, so a

@@ -5,6 +5,13 @@ import { GetFeedbackDefinitions } from './feedbacks.js'
 
 const Upgradereg = []
 
+// Sources and command keys change rarely (someone editing in Spyder
+// Studio), unlike layer-source state which can change on every cue. Rather
+// than re-fetching both full lists (plus RRD+SCR per command key) on every
+// poll tick -- competing with the RLS layer checks that actually drive
+// visible feedback latency -- they're only refetched every Nth tick.
+const DISCOVERY_EVERY_N_POLLS = 10
+
 // Fixed 10-byte UDP header the Spyder protocol requires in front of every
 // command: ASCII "spyder" + four 0x00 bytes.
 const HEADER_BYTES = Buffer.from([0x73, 0x70, 0x79, 0x64, 0x65, 0x72, 0x00, 0x00, 0x00, 0x00])
@@ -154,6 +161,7 @@ class SpyderInstance extends InstanceBase {
 		this.layerSource = {} // keyed by protocol layer id (human layer + 1)
 		this.watchedLayers = [] // populated once RLC answers -- see the 'RLC' case below
 		this.pollRateMs = Number(this.config.pollRateMs) || 2500
+		this.pollTick = 0
 		this.init_udp()
 	}
 
@@ -380,16 +388,36 @@ class SpyderInstance extends InstanceBase {
 				}
 			}
 		} else {
-			// queue a layer-source read-back for each watched layer, plus the
-			// source-list poll, then fall through to the register-names poll
-			for (const layer of this.watchedLayers) {
-				this.nextCmd.push(`RLS ${layer}`)
+			// Every tick: a layer-source read-back for each real layer -- this
+			// is the one that matters for visible feedback latency. Every Nth
+			// tick only: also refresh the cached source and command-key lists
+			// (rarely change, so don't need to compete for a queue slot on
+			// every single tick).
+			const layers = [...this.watchedLayers]
+			const isDiscoveryTick = this.pollTick % DISCOVERY_EVERY_N_POLLS === 0
+			this.pollTick++
+
+			if (isDiscoveryTick) {
+				for (const layer of layers) {
+					this.nextCmd.push(`RLS ${layer}`)
+				}
+				this.nextCmd.push('RRL 6 -1')
+				const cmd = 'RRL 4 -1'
+				await this.cueCmd(cmd)
+				this.lastCount = 0
+				this.saveLast = cmd
+			} else if (layers.length > 0) {
+				const first = layers.shift()
+				for (const layer of layers) {
+					this.nextCmd.push(`RLS ${layer}`)
+				}
+				const cmd = `RLS ${first}`
+				await this.cueCmd(cmd)
+				this.lastCount = 0
+				this.saveLast = cmd
 			}
-			this.nextCmd.push('RRL 6 -1')
-			const cmd = 'RRL 4 -1'
-			await this.cueCmd(cmd)
-			this.lastCount = 0
-			this.saveLast = cmd
+			// else: layer count not known yet (RLC hasn't answered) and this
+			// isn't a discovery tick -- nothing to poll this time around.
 		}
 	}
 	// Return config fields for web config

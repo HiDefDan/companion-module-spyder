@@ -38,8 +38,12 @@ for a large layer count, which is why it isn't made optional.
 **Poll interval**
 
 "Poll interval (ms)" in the connection's config affects feedback latency
-(default 2500ms, 500-30000ms) -- how often register/source/layer-source
-polling runs.
+(default 2500ms, 500-30000ms) -- how often layer-source polling runs.
+Sources and command keys are cached rather than re-fetched on every tick
+(they rarely change), refreshed only every 10th tick -- so a rename/add/
+delete on the Spyder shows up within ~10x the poll interval, not
+instantly, but layer-source feedback (the latency-sensitive one) is no
+longer waiting behind that traffic every single tick.
 
 **Layer count validation**
 
