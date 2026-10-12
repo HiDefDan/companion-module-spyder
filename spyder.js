@@ -247,7 +247,8 @@ class SpyderInstance extends InstanceBase {
 									case '6': {
 										// Sources. SRA addresses a source by name, not by ID, so this
 										// is purely for discovery: feeds src_<N> variables and the
-										// live dropdown choices on the 'sra' action.
+										// live dropdown choices on the 'sra' action and the
+										// 'layer_source_is' feedback.
 										const { changedIds, removedIds } = syncRegisterStore(this.sources, ids, names, (id) => ({
 											id,
 											name: '',
@@ -259,6 +260,7 @@ class SpyderInstance extends InstanceBase {
 										if (changedIds.size || removedIds.size) {
 											newReg = true
 											this.setActionDefinitions(compileActionDefinitions(this))
+											this.setFeedbackDefinitions(GetFeedbackDefinitions(this))
 										}
 										break
 									}

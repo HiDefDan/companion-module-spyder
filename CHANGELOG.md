@@ -56,3 +56,5 @@ not one per commit.
   real layer (zero, negative, leading zeros), on top of the live `RLC`
   bounds check. "Layers to poll for live source" is now also pruned
   against the real layer count once `RLC` answers, same as `sra`.
+- `layer_source_is`'s "Source Name" option is now the same live source
+  dropdown as `sra`'s (still `allowCustom`), instead of freeform text.

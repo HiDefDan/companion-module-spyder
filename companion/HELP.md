@@ -16,9 +16,9 @@
 
 Feedback and variables available for Script Cue and register. Sources are
 also polled (`RRL 6`) and exposed as `src_<N>` variables, and feed the
-Source Apply action's "Source Name" dropdown directly -- pick a live
-source by name, or type a custom value/expression (`$(...)` variables
-work there too).
+Source Apply action's and the "Layer source is" feedback's "Source Name"
+dropdowns directly -- pick a live source by name, or type a custom
+value/expression (`$(...)` variables work there too).
 
 All outgoing commands are sent as an explicit byte buffer (built from the
 fixed 10-byte header plus the literal command bytes) rather than relying on
