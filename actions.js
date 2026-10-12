@@ -93,6 +93,14 @@ export function compileActionDefinitions(self) {
 
 				const layers = valid.map((n) => String(n + 1)).join(' ')
 				await sendCmd(`SRA ${source} ${layers}`)
+
+				// Immediately confirm via RLS, rather than waiting for the next
+				// (now much slower, DISCOVERY_INTERVAL_MS-gated) periodic layer
+				// poll in spyder.js -- so 'layer_source_is' reflects this change
+				// right away instead of up to a minute later.
+				for (const n of valid) {
+					await self.cueCmd(`RLS ${n + 1}`)
+				}
 			},
 		},
 

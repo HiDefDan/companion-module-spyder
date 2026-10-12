@@ -29,23 +29,24 @@ reaches the device byte-for-byte unchanged.
 
 **Live layer source feedback**
 
-Every real layer is polled automatically for its currently-applied source
-via `RLS`, once the real layer count is known (see below) -- no config
-needed. Add the "Layer source is" feedback to a button and point it at a
-layer number to see it; the polling by itself is invisible, that feedback
-is what reads the polled value. The traffic this adds is negligible even
-for a large layer count, which is why it isn't made optional.
+Add the "Layer source is" feedback to a button and point it at a layer
+number -- no config needed elsewhere. Pressing `sra` immediately
+confirms via `RLS` for exactly the layer(s) it just applied, so the
+feedback updates right away for the common case (a change made through
+this module). Beyond that, every real layer is also re-checked via `RLS`
+on the same slow cadence as the source/command-key cache below -- a
+periodic safety net for a change made some other way (directly at the
+Spyder console, a script, `FKR`...), not the primary path. If you
+suspect feedback is stale, press the `sra` button again rather than
+waiting on that safety net.
 
 **Poll interval**
 
-"Poll interval (ms)" in the connection's config affects feedback latency
-(default 2500ms, 500-30000ms) -- how often layer-source polling runs.
-Sources and command keys are cached rather than re-fetched on every tick
-(they rarely change): refreshed automatically at most once every 60
-seconds, independently of the poll interval above, so a rename/add/
-delete on the Spyder shows up within a minute rather than instantly, but
-layer-source feedback (the latency-sensitive one) is no longer waiting
-behind that traffic on every single tick.
+"Poll interval (ms)" in the connection's config (default 2500ms,
+500-30000ms) is now mostly about how fast the module notices things are
+idle -- the RLS layer sweep, plus the source and command-key lists, are
+refreshed at most once every 60 seconds regardless, since they rarely
+change outside of this module's own actions.
 
 To force an immediate refresh instead of waiting -- e.g. right after
 adding a source or command key -- use the "Refresh Sources / Command

@@ -13,8 +13,7 @@ not one per commit.
   auto-escaping in-value spaces to the literal `%20` the protocol requires
   and applying the existing human-to-protocol layer (+1) offset.
 - Every real layer (per `RLC`, see below) is now polled automatically via
-  `RLS` -- no config needed; measured traffic from this is negligible
-  even for a large layer count, so it isn't made optional.
+  `RLS` -- no config needed.
 - `layer_source_is` feedback: styles a button based on whether a layer's
   live, device-reported source matches a given name (dropdown-fed, same
   as `sra`'s "Source Name", `allowCustom` still on).
@@ -39,12 +38,17 @@ not one per commit.
   ("Refresh Sources & Command Keys Now", Utility category).
 
 ### Changed
-- Sources (`RRL 6`) and command keys (`RRL 4` + `RRD`/`SCR` per key) are
-  now cached instead of re-fetched on every poll tick -- refreshed at
-  most once every `DISCOVERY_INTERVAL_MS` (60s, independent of the poll
-  interval), since they rarely change. `RLS` layer-source checks (the
-  latency-sensitive one) run every tick regardless, and no longer queue
-  behind that traffic almost all of the time.
+- `sra` now immediately follows its `SRA` send with an `RLS` for exactly
+  the layer(s) it just applied, so `layer_source_is` confirms the change
+  right away instead of waiting on the next periodic poll.
+- Sources (`RRL 6`), command keys (`RRL 4` + `RRD`/`SCR` per key), and
+  now also the per-layer `RLS` sweep are all cached/throttled instead of
+  re-fetched on every poll tick -- refreshed at most once every
+  `DISCOVERY_INTERVAL_MS` (60s, independent of the poll interval), since
+  none of them change outside of this module's own actions. That periodic
+  sweep is now a safety net for a change made some other way (Spyder
+  console, a script, `FKR`...), not the primary feedback path -- that's
+  the `sra`-triggered check above.
 - `updateStatus` now only fires on a real transition (new `setStatus`
   wrapper tracks the last status/message). Previously the success branch
   called `updateStatus(Ok, 'Connected')` on every single response, so a

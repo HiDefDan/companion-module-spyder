@@ -392,19 +392,21 @@ class SpyderInstance extends InstanceBase {
 				}
 			}
 		} else {
-			// Every tick: a layer-source read-back for each real layer -- this
-			// is the one that matters for visible feedback latency. At most
-			// once every DISCOVERY_INTERVAL_MS: also refresh the cached source
-			// and command-key lists (rarely change, so don't need to compete
-			// for a queue slot on every single tick). Also triggered on-demand
-			// by the 'rrl_refresh' action, which sets lastDiscoveryAt itself.
-			const layers = [...this.watchedLayers]
+			// Layer-source checks (RLS) now only happen on this same slow
+			// discovery cadence -- a periodic drift-correction safety net for
+			// changes made outside this module (Spyder console, a script,
+			// FKR...) -- or immediately after an 'sra' action targets a
+			// specific layer (see actions.js). Polling every real layer every
+			// tick was the dominant source of traffic and log noise for
+			// comparatively little benefit: the common case (a change made
+			// through this module) already gets instant feedback from the
+			// sra-triggered check, so it doesn't need the fast path too.
 			const now = Date.now()
 			const isDiscoveryTick = now - this.lastDiscoveryAt >= DISCOVERY_INTERVAL_MS
 
 			if (isDiscoveryTick) {
 				this.lastDiscoveryAt = now
-				for (const layer of layers) {
+				for (const layer of this.watchedLayers) {
 					this.nextCmd.push(`RLS ${layer}`)
 				}
 				this.nextCmd.push('RRL 6 -1')
@@ -412,18 +414,8 @@ class SpyderInstance extends InstanceBase {
 				await this.cueCmd(cmd)
 				this.lastCount = 0
 				this.saveLast = cmd
-			} else if (layers.length > 0) {
-				const first = layers.shift()
-				for (const layer of layers) {
-					this.nextCmd.push(`RLS ${layer}`)
-				}
-				const cmd = `RLS ${first}`
-				await this.cueCmd(cmd)
-				this.lastCount = 0
-				this.saveLast = cmd
 			}
-			// else: layer count not known yet (RLC hasn't answered) and this
-			// isn't a discovery tick -- nothing to poll this time around.
+			// else: not a discovery tick -- nothing to poll this time around.
 		}
 	}
 	// Return config fields for web config
