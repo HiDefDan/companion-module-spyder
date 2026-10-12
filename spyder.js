@@ -31,6 +31,36 @@ const RESULT_CODE_NAMES = {
 	6: 'Checksum (reserved)',
 }
 
+// Full command names from the manual, keyed by mnemonic (the first token
+// of the command text), for log readability only -- never used to build
+// or send anything.
+const COMMAND_NAMES = {
+	RLC: 'Request Layer Count',
+	RBL: 'Request Basic Preset List',
+	RRL: 'Request Register List',
+	RRD: 'Request Register Detail',
+	SCR: 'Script Cue Request',
+	RLS: 'Request Layer Source',
+	SRA: 'Source Apply',
+	ASC: 'Advance Script Cue',
+	BPR: 'Basic Preset Recall',
+	RSC: 'Recall Script Cue',
+	TRN: 'Transition Layers',
+	FRZ: 'Freeze Layer',
+	BTR: 'Transition Background',
+	FKR: 'Function Key Recall',
+	OFZ: 'Freeze Output',
+	DMT: 'Device Mixer Transition',
+}
+
+// "Request Layer Source (RLS 6)" if the mnemonic is known, else just the
+// raw command text unchanged.
+function describeCmd(cmd) {
+	const mnemonic = cmd.split(' ')[0]
+	const fullName = COMMAND_NAMES[mnemonic]
+	return fullName ? `${fullName} (${cmd})` : cmd
+}
+
 // Fixed 10-byte UDP header the Spyder protocol requires in front of every
 // command: ASCII "spyder" + four 0x00 bytes.
 const HEADER_BYTES = Buffer.from([0x73, 0x70, 0x79, 0x64, 0x65, 0x72, 0x00, 0x00, 0x00, 0x00])
@@ -130,7 +160,7 @@ class SpyderInstance extends InstanceBase {
 
 		if (this.udp !== undefined) {
 			const packet = buildPacket(cmd)
-			this.log('info', `Sending: ${cmd}`)
+			this.log('info', `Sending: ${describeCmd(cmd)}`)
 			this.log('debug', `Sending hex: ${packet.toString('hex')}`)
 			await this.udp.send(packet)
 			// save cmd for to store with next incoming response
@@ -232,7 +262,7 @@ class SpyderInstance extends InstanceBase {
 				const resultName = RESULT_CODE_NAMES[resultCode] ?? `Unknown code ${resultCode}`
 				this.log(
 					resultCode === '0' || resultCode === '1' ? 'info' : 'warn',
-					`Received for '${cmd.cmd}': ${resultName} -- ${msg}`,
+					`Received for ${describeCmd(cmd.cmd)}: ${resultName} -- ${msg}`,
 				)
 
 				switch (msg.slice(0, 1)) {

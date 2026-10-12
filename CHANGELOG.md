@@ -45,10 +45,12 @@ not one per commit.
   entirely on never having more than one command outstanding at a time;
   every stock action (not just `sra`) was bypassing that discipline and
   could previously fire while a poll response was still in flight.
-- Every send is now logged readably at `info` (e.g. `Sending: SRA
-  WF%20PGM 6`), not just as hex at `debug`. Every response is now
-  logged too (previously not logged at all), decoded against the
-  protocol's result-code table and leveled `info` (Success/Empty) or
+- Every send is now logged readably at `info` (e.g. `Sending: Source
+  Apply (SRA WF%20PGM 6)` -- mnemonic expanded to its full manual name
+  via a new `COMMAND_NAMES` lookup, raw command kept alongside), not
+  just as hex at `debug`. Every response is now logged too (previously
+  not logged at all), decoded against the protocol's result-code table
+  and leveled `info` (Success/Empty) or
   `warn` (everything else, including a response that arrives with
   nothing pending to match it to).
 - `sra` now immediately follows its `SRA` send with an `RLS` for exactly
