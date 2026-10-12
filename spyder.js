@@ -197,9 +197,6 @@ class SpyderInstance extends InstanceBase {
 										for (let s in this.reg) {
 											await this.cueCmd(`RRD 4 ${this.reg[s].id}`)
 											await this.cueCmd(`SCR ${this.reg[s].id} R`)
-											if (this.reg[s].scriptId) {
-												await this.cueCmd(`SCR ${this.reg[s].scriptId} S`)
-											}
 										}
 										break
 								}
@@ -225,13 +222,12 @@ class SpyderInstance extends InstanceBase {
 								this.reg[cmds[2]].scriptId = id
 								this.reg[cmds[2]].relative = !!val[2]
 								this.reg[cmds[2]].numCues = val[3]
-								if (!this.script2reg[val[1]]) {
-									this.variableDefs.push({ name: `Script ${id} name`, variableId: `s_name_${id}` })
-									this.variableValues[`s_name_${id}`] = this.reg[cmds[2]].name
-									this.script2reg[val[1]] = cmds[2]
-									newReg = true
-									newNames = true
-								}
+								// Register ID and Script ID both address the same command key; we
+								// keep this map so a feedback/action can address it by either ID
+								// type, but only ever expose one variable per key -- r_name_<RegisterID+1>,
+								// set above from the RRL 4 response -- rather than a second,
+								// duplicate variable keyed by Script ID.
+								this.script2reg[val[1]] = cmds[2]
 
 								break
 						}

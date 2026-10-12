@@ -8,6 +8,13 @@ History starts here at 2.4.0 — earlier versions weren't tracked in this file.
 ### Changed
 - "Layers to monitor" now accepts ranges and comma lists (e.g.
   `1-3, 10, 15-18`) instead of requiring every layer spelled out.
+- Each command key now exposes exactly one `r_name_<RegisterID+1>` variable.
+  Previously a second, duplicate variable (`s_name_<ScriptID>`) was also
+  created for the same key, since Register ID and Script ID are separate
+  numbering spaces the Spyder uses for the same object. The redundant
+  Script-ID-keyed `SCR` poll that fed it is also removed, halving the
+  per-register poll traffic; addressing a key by Script ID (via
+  `script2reg`) still works for feedbacks/actions that want it.
 
 ## [2.4.0]
 
