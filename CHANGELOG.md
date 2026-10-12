@@ -30,3 +30,7 @@ not one per commit.
   Script-ID-keyed `SCR` poll that fed it is also removed. Addressing a key
   by Script ID (via `script2reg`) still works for feedbacks/actions that
   want it.
+- Deleting a command key on the Spyder now removes its variable on the
+  next poll instead of leaving a stale one behind until the connection
+  was restarted (`RRL 4 -1` is the full register list, so anything
+  previously tracked that's absent from a response has been deleted).

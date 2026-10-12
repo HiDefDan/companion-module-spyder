@@ -177,9 +177,11 @@ class SpyderInstance extends InstanceBase {
 									case '4':
 										let r = msg.slice(2).split(' ')
 										let c = r.shift()
+										const seenIds = new Set()
 										for (let i = 0; i < c; i++) {
 											let id = parseInt(r[i * 2])
 											let name = decodeURIComponent(r[i * 2 + 1])
+											seenIds.add(id)
 											let rr = this.reg[id]
 											if (rr === undefined) {
 												rr = { id, active: false, scriptId: null, name: '' }
@@ -192,6 +194,16 @@ class SpyderInstance extends InstanceBase {
 												newReg = true // description text below embeds the name; refresh it too
 											}
 											this.reg[id] = rr
+										}
+
+										// '-1' as the page number means this response is the full,
+										// authoritative list -- any register we were tracking that
+										// didn't come back this time has been deleted on the Spyder.
+										for (const key of Object.keys(this.reg)) {
+											if (!seenIds.has(Number(key))) {
+												delete this.reg[key]
+												newReg = true
+											}
 										}
 
 										// Rebuilt (not incrementally pushed) so a renamed command key's
