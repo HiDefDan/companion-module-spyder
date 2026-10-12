@@ -380,6 +380,14 @@ class SpyderInstance extends InstanceBase {
 											// dropdown choices, same as sources below.
 											this.setActionDefinitions(compileActionDefinitions(this))
 											this.setFeedbackDefinitions(GetFeedbackDefinitions(this))
+											this.setPresetDefinitions(GetPresetDefinitions(this))
+											this.log(
+												'info',
+												`Command key list changed (+${changedIds.size} added/renamed, -${removedIds.size} removed) -- ` +
+													`per-key presets regenerated (${Object.keys(this.reg).length} total). Buttons already ` +
+													`placed from an older version of one of these do NOT auto-update or auto-remove -- ` +
+													`re-drag them from the Presets tab if needed.`,
+											)
 										}
 
 										for (let s in this.reg) {
@@ -577,6 +585,15 @@ class SpyderInstance extends InstanceBase {
 				default: 2500,
 				min: 500,
 				max: 30000,
+			},
+			{
+				type: 'number',
+				id: 'defaultCue',
+				label: 'Default recall cue (0 = Preview, 1 = Program, matching the Shotbox convention)',
+				width: 6,
+				default: 0,
+				min: 0,
+				max: 999,
 			},
 		]
 	}

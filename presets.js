@@ -1,5 +1,5 @@
 export function GetPresetDefinitions(self) {
-	return {
+	const presets = {
 		force_server_save: {
 			type: 'button',
 			category: 'Utility',
@@ -101,4 +101,46 @@ export function GetPresetDefinitions(self) {
 			],
 		},
 	}
+
+	// One preset per currently-discovered command key -- mirrors the
+	// ST420 Shotbox's "Read CMD Keys" auto-populate, but kept live: this
+	// is regenerated (spyder.js calls setPresetDefinitions again)
+	// whenever the command-key list changes, not just at connect. A
+	// button already dragged from an earlier version of one of these
+	// does NOT auto-update or auto-disappear if its key is later
+	// renamed/deleted -- Companion presets are just templates; a placed
+	// button is an independent copy from that point on.
+	for (const key of Object.values(self.reg ?? {})) {
+		const label = key.name || `(unnamed, Key ${key.id + 1})`
+		presets[`recall_key_${key.id}`] = {
+			type: 'button',
+			category: 'Command Keys',
+			name: label,
+			style: {
+				text: label,
+				size: 'auto',
+				color: 0xffffff,
+				bgcolor: 0x000066,
+			},
+			feedbacks: [
+				{
+					feedbackId: 'is_selected_key',
+					options: { registerId: String(key.id) },
+				},
+			],
+			steps: [
+				{
+					down: [
+						{
+							actionId: 'recall_at_cue',
+							options: { registerId: String(key.id), cue: Number(self.config?.defaultCue) || 0 },
+						},
+					],
+					up: [],
+				},
+			],
+		}
+	}
+
+	return presets
 }

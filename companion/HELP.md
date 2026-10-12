@@ -70,8 +70,9 @@ panel's own local memory of what it last selected, not something read
 back from Spyder. This module mirrors that:
 
 - "Recall Command Key at Cue" (dropdown-fed by live command keys, cue
-  defaults to 0/Preview per the Shotbox convention) both sends `RSC`
-  and records what it just recalled.
+  defaults to the connection's "Default recall cue" config -- 0 by
+  default, matching the Shotbox's own equivalent setting) both sends
+  `RSC` and records what it just recalled.
 - "Is Selected Command Key" feedback highlights whichever button's
   Command Key matches that recording -- same red-key idea, same
   caveat: it's local memory, not a live readback.
@@ -79,6 +80,14 @@ back from Spyder. This module mirrors that:
   nudge the recorded cue, clamped using that key's own `numCues` (from
   `RRD`) where known, so it won't track past a script's actual cue
   count.
+- One preset per currently-discovered command key (category "Command
+  Keys"), each pre-wired with "Recall Command Key at Cue" and "Is
+  Selected Command Key" for that specific key -- mirrors the Shotbox's
+  "Read CMD Keys" auto-populate. Unlike the physical panel, this stays
+  live: regenerated whenever a key is added, renamed, or removed, with
+  an `info` log noting the change. A button already dragged from an
+  older version of one of these does *not* auto-update or
+  auto-disappear -- re-drag it from the Presets tab if its key changed.
 
 **Logging**
 

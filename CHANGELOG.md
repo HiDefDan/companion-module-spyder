@@ -62,6 +62,17 @@ not one per commit.
   Shotbox naming): send `ASC +1`/`ASC -1` and nudge
   `self.lastRecalled.cue`, clamped at 0 and (where known) that key's
   `numCues` from `RRD`. Both also available as presets.
+- "Default recall cue" connection config field (0-999, default 0):
+  `recall_at_cue`'s and the per-key presets' default cue, instead of a
+  hardcoded 0 -- matches the Shotbox having this as a device-level
+  setting rather than per-key.
+- One preset per currently-discovered command key (category "Command
+  Keys"), pre-wired with `recall_at_cue` + `is_selected_key` for that
+  key -- mirrors the Shotbox's "Read CMD Keys" auto-populate. Kept
+  live: regenerated (with an `info` log) whenever the command-key list
+  changes, not just at connect. A button already dragged from an
+  older version does not auto-update/auto-remove if its key changes --
+  Companion presets are templates, not live-bound after being placed.
 
 ### Changed
 - All actions now go through `cueCmd` instead of calling `sendCmd`
