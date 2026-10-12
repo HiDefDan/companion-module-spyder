@@ -279,7 +279,7 @@ class SpyderInstance extends InstanceBase {
 		this.setStatus(InstanceStatus.Connecting, msg)
 		this.setActionDefinitions(compileActionDefinitions(this))
 		this.setFeedbackDefinitions(GetFeedbackDefinitions(this))
-		this.setPresetDefinitions(GetPresetDefinitions())
+		this.setPresetDefinitions(GetPresetDefinitions(this))
 		this.pending = []
 		this.nextCmd = []
 		this.status = {}

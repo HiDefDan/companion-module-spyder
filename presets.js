@@ -1,11 +1,11 @@
-export function GetPresetDefinitions() {
+export function GetPresetDefinitions(self) {
 	return {
 		force_server_save: {
 			type: 'button',
 			category: 'Utility',
 			name: 'Force Server Save',
 			style: {
-				text: 'Force\nServer Save',
+				text: `${self.label}\nSAVE`,
 				size: 'auto',
 				color: 0xffffff,
 				bgcolor: 0x660000,

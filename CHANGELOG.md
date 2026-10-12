@@ -40,9 +40,14 @@ not one per commit.
   the Spyder to persist current config/state to non-volatile storage.
   Also available as a preset ("Force Server Save", Utility category).
 - `sav_last_time` feedback ("Last Save Time"): advanced feedback that
-  appends `Last: HH:MM` to the button text once a `SAV` has gotten a
+  appends `last:HH:MM` to the button text once a `SAV` has gotten a
   Success response this connection; no override before that. Wired
   into the "Force Server Save" preset by default.
+- `GetPresetDefinitions` now takes `self`, so preset text can use
+  `self.label` (the connection's own name) -- the Force Server Save
+  preset's text is now `<connection label>\nSAVE` (and
+  `<connection label>\nSAVE\nlast:HH:MM` once saved), rather than a
+  fixed "Force\nServer Save" label.
 
 ### Changed
 - All actions now go through `cueCmd` instead of calling `sendCmd`

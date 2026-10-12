@@ -8,8 +8,11 @@
 * Recall Script Cue (Script, Cue)
 * Source Apply (assign a source to one or more layers)
 * Refresh Sources / Command Keys Now (force an immediate re-fetch)
-* Force Server Save (also available as a preset, with a "Last Save Time"
-  feedback showing the HH:MM of the most recent successful save)
+* Force Server Save (also available as a preset: "<connection
+  label>\nSAVE", with a "Last Save Time" feedback appending
+  "last:HH:MM" once a save has succeeded this connection. Font is a
+  per-button Companion setting -- the classic button style this module
+  uses has no font property for a module to set.)
 * Transition Layer(s)
 * Freeze Layer(s)
 * Background Transition

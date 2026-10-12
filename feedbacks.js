@@ -20,7 +20,7 @@ export function GetFeedbackDefinitions(self) {
 			options: [],
 			callback: () => {
 				const hhmm = self.getLastSaveTime()
-				return hhmm ? { text: `Force\nServer Save\nLast: ${hhmm}` } : {}
+				return hhmm ? { text: `${self.label}\nSAVE\nlast:${hhmm}` } : {}
 			},
 		},
 
