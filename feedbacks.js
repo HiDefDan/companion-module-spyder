@@ -12,7 +12,41 @@ export function GetFeedbackDefinitions(self) {
 		sourceChoices.push({ id: '', label: '(no sources discovered yet -- type a name, or wait for next poll)' })
 	}
 
+	// Live-discovered command keys (RRL 4) -- same id/label convention as
+	// the 'recall_at_cue' action's dropdown in actions.js.
+	const cmdKeyChoices = Object.values(self.reg ?? {})
+		.sort((a, b) => a.id - b.id)
+		.map((k) => ({ id: String(k.id), label: `${k.name || '(unnamed)'} (Key ${k.id + 1})` }))
+	if (cmdKeyChoices.length === 0) {
+		cmdKeyChoices.push({ id: '', label: '(no command keys discovered yet -- type a Register ID, or wait for next poll)' })
+	}
+
 	return {
+		is_selected_key: {
+			type: 'boolean',
+			name: 'Is Selected Command Key',
+			description:
+				'Highlights when this is the Command Key last recalled via "Recall Command Key at Cue" -- ' +
+				"mirrors the Shotbox's red \"selected\" key. Local memory only, not read back from Spyder.",
+			defaultStyle: {
+				bgcolor: combineRgb(200, 0, 0),
+				color: 16777215,
+			},
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Command Key',
+					id: 'registerId',
+					default: cmdKeyChoices[0].id,
+					choices: cmdKeyChoices,
+					allowCustom: true,
+				},
+			],
+			callback: (fb) => {
+				return self.lastRecalled !== undefined && String(self.lastRecalled.registerId) === String(fb.options.registerId)
+			},
+		},
+
 		sav_last_time: {
 			type: 'advanced',
 			name: 'Last Save Time',

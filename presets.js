@@ -29,6 +29,54 @@ export function GetPresetDefinitions(self) {
 			],
 		},
 
+		cue_rev: {
+			type: 'button',
+			category: 'Script Cue',
+			name: 'Cue Back (REV)',
+			style: {
+				text: '<<<\nREV',
+				size: 'auto',
+				color: 0xffffff,
+				bgcolor: 0x330000,
+			},
+			feedbacks: [],
+			steps: [
+				{
+					down: [
+						{
+							actionId: 'cue_rev',
+							options: {},
+						},
+					],
+					up: [],
+				},
+			],
+		},
+
+		cue_fwd: {
+			type: 'button',
+			category: 'Script Cue',
+			name: 'Cue Advance (FWD)',
+			style: {
+				text: '>>>\nFWD',
+				size: 'auto',
+				color: 0xffffff,
+				bgcolor: 0x003300,
+			},
+			feedbacks: [],
+			steps: [
+				{
+					down: [
+						{
+							actionId: 'cue_fwd',
+							options: {},
+						},
+					],
+					up: [],
+				},
+			],
+		},
+
 		rrl_refresh_both: {
 			type: 'button',
 			category: 'Utility',

@@ -18,12 +18,85 @@ export function compileActionDefinitions(self) {
 		sourceChoices.push({ id: '', label: '(no sources discovered yet -- type a name, or wait for next poll)' })
 	}
 
+	// Live-discovered command keys (RRL 4, polled in spyder.js) -- choice
+	// values are the raw (0-based) Register ID, matching what RSC/RRD/SCR
+	// actually use on the wire; the label adds the human-numbered "Key N"
+	// (id+1) to match the cKey_rID_N variable naming.
+	const cmdKeyChoices = Object.values(self.reg ?? {})
+		.sort((a, b) => a.id - b.id)
+		.map((k) => ({ id: String(k.id), label: `${k.name || '(unnamed)'} (Key ${k.id + 1})` }))
+	if (cmdKeyChoices.length === 0) {
+		cmdKeyChoices.push({ id: '', label: '(no command keys discovered yet -- type a Register ID, or wait for next poll)' })
+	}
+
 	return {
 		'sav': {
 			name: 'Force Server Save',
 			options: [],
 			callback: async () => {
 				await sendCmd('SAV')
+			},
+		},
+
+		'recall_at_cue': {
+			name: 'Recall Command Key at Cue (sets selected)',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Command Key',
+					id: 'registerId',
+					default: cmdKeyChoices[0].id,
+					choices: cmdKeyChoices,
+					allowCustom: true,
+					regex: Regex.NUMBER,
+				},
+				{
+					type: 'number',
+					label: 'Cue (0 = Preview, 1 = Program, matching the Shotbox convention)',
+					id: 'cue',
+					default: 0,
+					min: 0,
+					max: 999,
+				},
+			],
+			// Addressed by Register ID ('R'), matching the dropdown's values --
+			// see the comment on cmdKeyChoices above.
+			callback: async (action) => {
+				const registerId = Number(action.options.registerId)
+				const cue = Number(action.options.cue)
+				await sendCmd(`RSC ${registerId} ${cue} R`)
+				// Mirrors the Shotbox's "key turns red on recall" -- this is the
+				// module's own local memory of what's current, not something
+				// read back from Spyder (ASC itself has no script-ID argument,
+				// it always acts on Spyder's own global "current script").
+				self.lastRecalled = { registerId, cue }
+				self.checkFeedbacks('is_selected_key')
+			},
+		},
+
+		'cue_fwd': {
+			name: 'Cue Advance (FWD)',
+			options: [],
+			callback: async () => {
+				await sendCmd('ASC +1')
+				if (self.lastRecalled) {
+					const numCues = Number(self.reg?.[self.lastRecalled.registerId]?.numCues)
+					const ceiling = isNaN(numCues) ? Infinity : numCues - 1
+					self.lastRecalled.cue = Math.min(ceiling, self.lastRecalled.cue + 1)
+					self.checkFeedbacks('is_selected_key')
+				}
+			},
+		},
+
+		'cue_rev': {
+			name: 'Cue Back (REV)',
+			options: [],
+			callback: async () => {
+				await sendCmd('ASC -1')
+				if (self.lastRecalled) {
+					self.lastRecalled.cue = Math.max(0, self.lastRecalled.cue - 1)
+					self.checkFeedbacks('is_selected_key')
+				}
 			},
 		},
 

@@ -284,6 +284,7 @@ class SpyderInstance extends InstanceBase {
 		this.nextCmd = []
 		this.status = {}
 		this.layerSource = {} // keyed by protocol layer id (human layer + 1)
+		this.lastRecalled = undefined // {registerId, cue} -- set by recall_at_cue, read by is_selected_key/cue_fwd/cue_rev
 		this.watchedLayers = [] // populated once RLC answers -- see the 'RLC' case below
 		this.pollRateMs = Number(this.config.pollRateMs) || 2500
 		this.lastDiscoveryAt = 0 // far enough in the past that the first poll() is always a discovery tick
@@ -375,6 +376,10 @@ class SpyderInstance extends InstanceBase {
 										}
 										if (changedIds.size || removedIds.size) {
 											newReg = true // description text embeds the name; refresh defs too
+											// Feeds recall_at_cue's/is_selected_key's "Command Key"
+											// dropdown choices, same as sources below.
+											this.setActionDefinitions(compileActionDefinitions(this))
+											this.setFeedbackDefinitions(GetFeedbackDefinitions(this))
 										}
 
 										for (let s in this.reg) {

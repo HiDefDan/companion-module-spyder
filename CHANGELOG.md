@@ -48,6 +48,20 @@ not one per commit.
   preset's text is now `<connection label>\nSAVE` (and
   `<connection label>\nSAVE\nlast:HH:MM` once saved), rather than a
   fixed "Force\nServer Save" label.
+- `recall_at_cue` action (Recall Command Key at Cue): dropdown-fed by
+  live command keys (same id/label convention as `sra`'s source
+  dropdown), sends `RSC <id> <cue> R` and records `{registerId, cue}`
+  as `self.lastRecalled` -- Spyder's `ASC` has no script-ID argument
+  of its own, so this is the module's local stand-in for the ST420
+  Shotbox's "selected key" concept.
+- `is_selected_key` feedback (Is Selected Command Key): highlights
+  whichever Command Key matches `self.lastRecalled`. Local memory
+  only, same caveat as the Shotbox's own red-key indicator -- not a
+  live readback from Spyder.
+- `cue_fwd`/`cue_rev` actions (Cue Advance/Cue Back, FWD/REV to match
+  Shotbox naming): send `ASC +1`/`ASC -1` and nudge
+  `self.lastRecalled.cue`, clamped at 0 and (where known) that key's
+  `numCues` from `RRD`. Both also available as presets.
 
 ### Changed
 - All actions now go through `cueCmd` instead of calling `sendCmd`

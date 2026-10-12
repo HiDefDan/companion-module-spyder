@@ -13,6 +13,9 @@
   "last:HH:MM" once a save has succeeded this connection. Font is a
   per-button Companion setting -- the classic button style this module
   uses has no font property for a module to set.)
+* Recall Command Key at Cue (sets selected) -- dropdown-fed by live
+  command keys; also sets which key "Is Selected Command Key" tracks
+* Cue Advance (FWD) / Cue Back (REV) -- both also available as presets
 * Transition Layer(s)
 * Freeze Layer(s)
 * Background Transition
@@ -57,6 +60,25 @@ To force an immediate refresh instead of waiting -- e.g. right after
 adding a source or command key -- use the "Refresh Sources / Command
 Keys Now" action (multi-select which type(s)), or drag the "Refresh
 Sources & Command Keys Now" preset onto a button.
+
+**Script Cue workflow (Shotbox-inspired)**
+
+Spyder's `ASC` (Advance Script Cue) has no script-ID argument -- it
+always acts on Spyder's own single global "current script," which is
+why the ST420 Shotbox's keys turn red on recall: that's the physical
+panel's own local memory of what it last selected, not something read
+back from Spyder. This module mirrors that:
+
+- "Recall Command Key at Cue" (dropdown-fed by live command keys, cue
+  defaults to 0/Preview per the Shotbox convention) both sends `RSC`
+  and records what it just recalled.
+- "Is Selected Command Key" feedback highlights whichever button's
+  Command Key matches that recording -- same red-key idea, same
+  caveat: it's local memory, not a live readback.
+- "Cue Advance (FWD)" / "Cue Back (REV)" send `ASC +1` / `ASC -1` and
+  nudge the recorded cue, clamped using that key's own `numCues` (from
+  `RRD`) where known, so it won't track past a script's actual cue
+  count.
 
 **Logging**
 
