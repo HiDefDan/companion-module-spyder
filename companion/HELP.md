@@ -25,10 +25,10 @@ reaches the device byte-for-byte unchanged.
 **Live layer source feedback**
 
 Set "Layers to monitor for live source feedback" in the connection's config
-(human-numbered layers, space/comma separated) to have the module poll
-those layers' currently-applied source every ~2.5s via `RLS`. Use the
-"Layer source is" feedback to style a button based on whether a given
-layer's live source name matches.
+(human-numbered, e.g. `1-3, 10, 15-18`) to have the module poll those
+layers' currently-applied source every ~2.5s via `RLS`. Use the "Layer
+source is" feedback to style a button based on whether a given layer's
+live source name matches.
 
 
 --------

@@ -19,6 +19,26 @@ function buildPacket(cmd) {
 	return Buffer.concat([HEADER_BYTES, Buffer.from(cmd, 'latin1')])
 }
 
+// Parses a human-friendly layer list like "1-3, 10, 15-18" into a flat,
+// deduped array of numbers. Malformed tokens are silently skipped rather
+// than throwing, so a typo just omits that layer instead of breaking poll.
+function parseLayerList(raw) {
+	const out = []
+	for (const token of String(raw ?? '').split(/[\s,]+/)) {
+		const t = token.trim()
+		if (!t) continue
+		const range = t.match(/^(\d+)-(\d+)$/)
+		if (range) {
+			let [a, b] = [Number(range[1]), Number(range[2])]
+			if (a > b) [a, b] = [b, a]
+			for (let n = a; n <= b; n++) out.push(n)
+		} else if (/^\d+$/.test(t)) {
+			out.push(Number(t))
+		}
+	}
+	return [...new Set(out)]
+}
+
 class SpyderInstance extends InstanceBase {
 	constructor(internal) {
 		// super-constructor
@@ -104,11 +124,7 @@ class SpyderInstance extends InstanceBase {
 		this.nextCmd = []
 		this.status = {}
 		this.layerSource = {} // keyed by protocol layer id (human layer + 1)
-		this.watchedLayers = String(this.config.watchLayers ?? '')
-			.split(/[\s,]+/)
-			.map((s) => s.trim())
-			.filter((s) => s.length > 0)
-			.map((humanLayer) => String(Number(humanLayer) + 1))
+		this.watchedLayers = parseLayerList(this.config.watchLayers).map((humanLayer) => String(humanLayer + 1))
 		this.init_udp()
 	}
 
@@ -306,9 +322,10 @@ class SpyderInstance extends InstanceBase {
 			{
 				type: 'textinput',
 				id: 'watchLayers',
-				label: 'Layers to monitor for live source feedback (human-numbered, space/comma separated)',
+				label: 'Layers to monitor for live source feedback (human-numbered, e.g. "1-3, 10, 15-18")',
 				width: 12,
 				default: '',
+				regex: '/^[\\d\\s,-]*$/',
 			},
 		]
 	}

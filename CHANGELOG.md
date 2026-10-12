@@ -3,6 +3,12 @@
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 History starts here at 2.4.0 — earlier versions weren't tracked in this file.
 
+## [2.4.1]
+
+### Changed
+- "Layers to monitor" now accepts ranges and comma lists (e.g.
+  `1-3, 10, 15-18`) instead of requiring every layer spelled out.
+
 ## [2.4.0]
 
 ### Added
