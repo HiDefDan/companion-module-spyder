@@ -56,9 +56,11 @@ Sources & Command Keys Now" preset onto a button.
 **Logging**
 
 Every send is logged readably at `info` (`Sending: Source Apply (SRA
-WF%20PGM 6)` -- the mnemonic is expanded to its full manual name, raw
-command kept alongside), with the exact hex also logged at `debug` for
-wire-level inspection. Every
+"WF PGM" 6)` -- mnemonic expanded to its full manual name, and any
+`%20`-escaped argument decoded back to a space and quoted, so it reads
+as one value rather than looking like extra arguments), with the exact
+hex also logged at `debug` for wire-level inspection -- the quoting and
+decoding is display-only, never sent. Every
 response is logged too, decoded against the protocol's result-code table
 (`info` for Success/Empty, `warn` for anything else -- Header/invalid
 command, Argument count/value, Execution, or an unexpected/unmatched

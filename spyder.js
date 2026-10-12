@@ -53,12 +53,25 @@ const COMMAND_NAMES = {
 	DMT: 'Device Mixer Transition',
 }
 
+// Makes %20-escaped argument values readable: splits on the protocol's
+// real delimiter (a literal space) and wraps any token that contained an
+// escaped space in quotes once decoded, so 'CAM%20MV1%20(OC)' reads as
+// '"CAM MV1 (OC)"' -- one argument, not three. Display only, never used
+// to build or send anything.
+function humanizeArgs(text) {
+	return text
+		.split(' ')
+		.map((tok) => (tok.includes('%20') ? `"${tok.replace(/%20/g, ' ')}"` : tok))
+		.join(' ')
+}
+
 // "Request Layer Source (RLS 6)" if the mnemonic is known, else just the
-// raw command text unchanged.
+// humanized command text.
 function describeCmd(cmd) {
 	const mnemonic = cmd.split(' ')[0]
 	const fullName = COMMAND_NAMES[mnemonic]
-	return fullName ? `${fullName} (${cmd})` : cmd
+	const readable = humanizeArgs(cmd)
+	return fullName ? `${fullName} (${readable})` : readable
 }
 
 // Fixed 10-byte UDP header the Spyder protocol requires in front of every
@@ -262,7 +275,7 @@ class SpyderInstance extends InstanceBase {
 				const resultName = RESULT_CODE_NAMES[resultCode] ?? `Unknown code ${resultCode}`
 				this.log(
 					resultCode === '0' || resultCode === '1' ? 'info' : 'warn',
-					`Received for ${describeCmd(cmd.cmd)}: ${resultName} -- ${msg}`,
+					`Received for ${describeCmd(cmd.cmd)}: ${resultName} -- ${humanizeArgs(msg)}`,
 				)
 
 				switch (msg.slice(0, 1)) {
