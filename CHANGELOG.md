@@ -48,3 +48,11 @@ not one per commit.
 - Factored the add/rename/delete tracking shared by command keys and
   sources into one `syncRegisterStore` helper instead of duplicating it;
   removed a dead commented-out register-polling block it superseded.
+- Relabelled "Layers to monitor" to "Layers to poll for live source" and
+  spelled out that it only starts polling -- it doesn't produce feedback
+  by itself, that's what the "Layer source is" feedback does.
+- Both layer-number fields ("Layers to poll for live source" and `sra`'s
+  "Layer(s)") now have a regex rejecting values that could never be a
+  real layer (zero, negative, leading zeros), on top of the live `RLC`
+  bounds check. "Layers to poll for live source" is now also pruned
+  against the real layer count once `RLC` answers, same as `sra`.

@@ -31,6 +31,11 @@ export function compileActionDefinitions(self) {
 					label: 'Layer(s) (human-numbered, space delimited if more than one)',
 					id: 'lay',
 					default: '1',
+					// Rejects 0, negatives, leading zeros, and other values that can
+					// never be a real layer number. The live upper bound (this
+					// Spyder's actual layer count) is checked separately in the
+					// callback below, since regex can't see runtime state.
+					regex: '/^\\s*[1-9]\\d*(\\s+[1-9]\\d*)*\\s*$/',
 				},
 			],
 			callback: async (action, context) => {

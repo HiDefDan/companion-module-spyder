@@ -283,6 +283,21 @@ class SpyderInstance extends InstanceBase {
 								const logical = parseInt(msg.split(' ')[1])
 								if (!isNaN(logical)) {
 									this.layerCount = logical - 2
+
+									// "Layers to monitor" was parsed at start(), before this
+									// response could possibly have arrived, so it couldn't be
+									// bounds-checked yet -- prune it now against the real count.
+									const before = this.watchedLayers.length
+									this.watchedLayers = this.watchedLayers.filter(
+										(protocolLayer) => Number(protocolLayer) - 1 <= this.layerCount,
+									)
+									const dropped = before - this.watchedLayers.length
+									if (dropped > 0) {
+										this.log(
+											'warn',
+											`"Layers to monitor" had ${dropped} layer(s) beyond this Spyder's ${this.layerCount} layers -- dropped`,
+										)
+									}
 								}
 								break
 							}
@@ -405,10 +420,16 @@ class SpyderInstance extends InstanceBase {
 			{
 				type: 'textinput',
 				id: 'watchLayers',
-				label: 'Layers to monitor for live source feedback (human-numbered, e.g. "1-3, 10, 15-18")',
+				label:
+					'Layers to poll for live source, required by the "Layer source is" feedback -- listing a layer ' +
+					'here only starts polling it, it does not show feedback by itself (human-numbered, e.g. "1-3, 10, 15-18")',
 				width: 12,
 				default: '',
-				regex: '/^[\\d\\s,-]*$/',
+				// Rejects 0, negatives, leading zeros and other garbage that can
+				// never be a real layer number -- the live upper bound (this
+				// Spyder's actual layer count) can't be checked here since regex
+				// is static, so that's enforced separately once RLC answers.
+				regex: '/^\\s*$|^\\s*[1-9]\\d*(?:-[1-9]\\d*)?(?:(?:\\s*,\\s*|\\s+)[1-9]\\d*(?:-[1-9]\\d*)?)*\\s*$/',
 			},
 			{
 				type: 'number',
