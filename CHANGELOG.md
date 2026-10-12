@@ -21,11 +21,12 @@ not one per commit.
 - Outgoing commands are now sent as an explicit byte buffer (fixed header +
   command bytes) instead of a plain JS string, so command text reaches the
   device byte-for-byte regardless of Node's string-encoding defaults.
-- Each command key now exposes exactly one `r_name_<RegisterID+1>` variable,
-  labelled "Command Key: <name>" (and kept in sync if renamed in Spyder
-  Studio). Previously a second, duplicate variable (`s_name_<ScriptID>`)
-  was also created for the same key, since Register ID and Script ID are
-  separate numbering spaces the Spyder uses for the same object; the
-  redundant Script-ID-keyed `SCR` poll that fed it is also removed.
-  Addressing a key by Script ID (via `script2reg`) still works for
-  feedbacks/actions that want it.
+- Each command key now exposes exactly one `cKey_rID_<RegisterID>` variable
+  (named `r_name_*` until this was renamed for clarity), labelled
+  "Command Key: <name>" (kept in sync if renamed in Spyder Studio).
+  Previously a second, duplicate variable (`s_name_<ScriptID>`) was also
+  created for the same key, since Register ID and Script ID are separate
+  numbering spaces the Spyder uses for the same object; the redundant
+  Script-ID-keyed `SCR` poll that fed it is also removed. Addressing a key
+  by Script ID (via `script2reg`) still works for feedbacks/actions that
+  want it.

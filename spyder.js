@@ -187,7 +187,7 @@ class SpyderInstance extends InstanceBase {
 											}
 											if (rr.name != name) {
 												rr.name = name
-												this.variableValues[`r_name_${id + 1}`] = name
+												this.variableValues[`cKey_rID_${id + 1}`] = name
 												newNames = true
 												newReg = true // description text below embeds the name; refresh it too
 											}
@@ -200,7 +200,7 @@ class SpyderInstance extends InstanceBase {
 										// internal protocol term "Register".
 										this.variableDefs = Object.values(this.reg).map((reg) => ({
 											name: `Command Key: ${reg.name || '(unnamed)'}`,
-											variableId: `r_name_${reg.id + 1}`,
+											variableId: `cKey_rID_${reg.id + 1}`,
 										}))
 
 										for (let s in this.reg) {
@@ -233,7 +233,7 @@ class SpyderInstance extends InstanceBase {
 								this.reg[cmds[2]].numCues = val[3]
 								// Register ID and Script ID both address the same command key; we
 								// keep this map so a feedback/action can address it by either ID
-								// type, but only ever expose one variable per key -- r_name_<RegisterID+1>,
+								// type, but only ever expose one variable per key -- cKey_rID_<RegisterID>,
 								// set above from the RRL 4 response -- rather than a second,
 								// duplicate variable keyed by Script ID.
 								this.script2reg[val[1]] = cmds[2]
