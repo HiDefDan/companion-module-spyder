@@ -5,3 +5,6 @@ node_modules/
 DEBUG-INSPECT
 DEBUG-PACKAGED
 DEBUG-PACKAGE
+
+# Reference material, not part of the module
+/docs/
