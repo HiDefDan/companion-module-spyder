@@ -20,7 +20,7 @@ const DISCOVERY_INTERVAL_MS = 60000
 // reserved/unused; there's no sequence number or echo of the original
 // command anywhere in a response, so matching a response back to the
 // request that caused it relies entirely on send/receive ordering (see
-// the comment on the single-outstanding-command discipline in cueCmd).
+// the comment on the single-outstanding-command discipline in queueCmd).
 const RESULT_CODE_NAMES = {
 	0: 'Success',
 	1: 'Empty',
@@ -198,7 +198,7 @@ class SpyderInstance extends InstanceBase {
 	// there's never more than one candidate for it to match against. Call
 	// this (not sendCmd directly) from anywhere that might run while
 	// something else could already be in flight.
-	cueCmd = async (cmd) => {
+	queueCmd = async (cmd) => {
 		if (cmd !== undefined) {
 			if (this.pending.length) {
 				this.nextCmd.push(cmd)
@@ -318,7 +318,7 @@ class SpyderInstance extends InstanceBase {
 				if (cmd == undefined) {
 					// Nothing was outstanding to match this to -- a stale/late
 					// response after a resend assumed it lost, most likely. See
-					// the comment on cueCmd re: why this shouldn't normally happen.
+					// the comment on queueCmd re: why this shouldn't normally happen.
 					this.log('warn', `Received a response with nothing pending to match it to -- discarding: ${msg}`)
 					return
 				}
@@ -391,8 +391,8 @@ class SpyderInstance extends InstanceBase {
 										}
 
 										for (let s in this.reg) {
-											await this.cueCmd(`RRD 4 ${this.reg[s].id}`)
-											await this.cueCmd(`SCR ${this.reg[s].id} R`)
+											await this.queueCmd(`RRD 4 ${this.reg[s].id}`)
+											await this.queueCmd(`SCR ${this.reg[s].id} R`)
 										}
 										break
 									}
@@ -497,14 +497,14 @@ class SpyderInstance extends InstanceBase {
 						break
 				}
 				if (this.nextCmd.length) {
-					await this.cueCmd(this.nextCmd.shift())
+					await this.queueCmd(this.nextCmd.shift())
 				}
 			})
 
 			this.udp.on('listening', async () => {
 				this.setStatus(InstanceStatus.Ok, 'UDP Listening')
 				// send a simple query (how many layers)
-				await this.cueCmd('RLC')
+				await this.queueCmd('RLC')
 				this.reg = {}
 				this.script2reg = {}
 				this.sources = {} // keyed by source register id; feeds src_<N> variables and the sra action's dropdown
@@ -521,7 +521,7 @@ class SpyderInstance extends InstanceBase {
 			// command queue not empty
 			if (!this.pending.length) {
 				// no commands outstanding
-				await this.cueCmd(this.nextCmd.shift())
+				await this.queueCmd(this.nextCmd.shift())
 				this.saveLast = this.lastCmd
 				this.lastCount = 0
 			} else {
@@ -560,7 +560,7 @@ class SpyderInstance extends InstanceBase {
 				}
 				this.nextCmd.push('RRL 6 -1')
 				const cmd = 'RRL 4 -1'
-				await this.cueCmd(cmd)
+				await this.queueCmd(cmd)
 				this.lastCount = 0
 				this.saveLast = cmd
 			}

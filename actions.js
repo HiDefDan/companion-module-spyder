@@ -1,11 +1,11 @@
 import { Regex } from '@companion-module/base'
 
 export function compileActionDefinitions(self) {
-	// Every action here goes through cueCmd, not sendCmd directly -- every
+	// Every action here goes through queueCmd, not sendCmd directly -- every
 	// one of them (not just sra) could otherwise fire while a poll
 	// response is still outstanding, and responses carry no sequence
-	// number to recover from that. See the comment on cueCmd in spyder.js.
-	const sendCmd = self.cueCmd
+	// number to recover from that. See the comment on queueCmd in spyder.js.
+	const sendCmd = self.queueCmd
 
 	// Live-discovered sources (RRL 6, polled in spyder.js) -- SRA addresses a
 	// source by name, so the dropdown's values are names, not ids. Rebuilt on
@@ -116,7 +116,7 @@ export function compileActionDefinitions(self) {
 			],
 			callback: async (action) => {
 				for (const type of action.options.types) {
-					await self.cueCmd(`RRL ${type} -1`)
+					await self.queueCmd(`RRL ${type} -1`)
 				}
 				// Counts as a discovery tick, so the periodic poll doesn't
 				// immediately redo the same fetch a moment later.
@@ -184,7 +184,7 @@ export function compileActionDefinitions(self) {
 				// poll in spyder.js -- so 'layer_source_is' reflects this change
 				// right away instead of up to a minute later.
 				for (const n of valid) {
-					await self.cueCmd(`RLS ${n + 1}`)
+					await self.queueCmd(`RLS ${n + 1}`)
 				}
 			},
 		},
