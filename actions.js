@@ -15,6 +15,30 @@ export function compileActionDefinitions(self) {
 	}
 
 	return {
+		'rrl_refresh': {
+			name: 'Refresh Sources / Command Keys Now',
+			options: [
+				{
+					type: 'multidropdown',
+					label: 'Register type(s) to refresh immediately',
+					id: 'types',
+					default: ['4', '6'],
+					choices: [
+						{ id: '4', label: 'Command Keys' },
+						{ id: '6', label: 'Sources' },
+					],
+				},
+			],
+			callback: async (action) => {
+				for (const type of action.options.types) {
+					await self.cueCmd(`RRL ${type} -1`)
+				}
+				// Counts as a discovery tick, so the periodic poll doesn't
+				// immediately redo the same fetch a moment later.
+				self.lastDiscoveryAt = Date.now()
+			},
+		},
+
 		'sra': {
 			name: 'Source Apply (assign source to layer)',
 			options: [

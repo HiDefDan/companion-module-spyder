@@ -7,6 +7,7 @@
 * Basic Preset Recall (Index number)
 * Recall Script Cue (Script, Cue)
 * Source Apply (assign a source to one or more layers)
+* Refresh Sources / Command Keys Now (force an immediate re-fetch)
 * Transition Layer(s)
 * Freeze Layer(s)
 * Background Transition
@@ -40,10 +41,16 @@ for a large layer count, which is why it isn't made optional.
 "Poll interval (ms)" in the connection's config affects feedback latency
 (default 2500ms, 500-30000ms) -- how often layer-source polling runs.
 Sources and command keys are cached rather than re-fetched on every tick
-(they rarely change), refreshed only every 10th tick -- so a rename/add/
-delete on the Spyder shows up within ~10x the poll interval, not
-instantly, but layer-source feedback (the latency-sensitive one) is no
-longer waiting behind that traffic every single tick.
+(they rarely change): refreshed automatically at most once every 60
+seconds, independently of the poll interval above, so a rename/add/
+delete on the Spyder shows up within a minute rather than instantly, but
+layer-source feedback (the latency-sensitive one) is no longer waiting
+behind that traffic on every single tick.
+
+To force an immediate refresh instead of waiting -- e.g. right after
+adding a source or command key -- use the "Refresh Sources / Command
+Keys Now" action (multi-select which type(s)), or drag the "Refresh
+Sources & Command Keys Now" preset onto a button.
 
 **Layer count validation**
 

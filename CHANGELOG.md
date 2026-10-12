@@ -32,13 +32,19 @@ not one per commit.
   layer that doesn't exist. Neither applies until the first `RLC`
   response lands.
 
+- `rrl_refresh` action (Refresh Sources / Command Keys Now): multi-select
+  which register type(s) (Command Keys, Sources) to re-fetch immediately,
+  for right after adding/renaming/deleting one rather than waiting out
+  the cache interval below. Also available as a preset
+  ("Refresh Sources & Command Keys Now", Utility category).
+
 ### Changed
 - Sources (`RRL 6`) and command keys (`RRL 4` + `RRD`/`SCR` per key) are
-  now cached instead of re-fetched on every poll tick -- refreshed only
-  every `DISCOVERY_EVERY_N_POLLS` (10) ticks, since they rarely change.
-  `RLS` layer-source checks (the latency-sensitive one) run every tick
-  regardless, and no longer queue behind that traffic on 9 out of 10
-  ticks.
+  now cached instead of re-fetched on every poll tick -- refreshed at
+  most once every `DISCOVERY_INTERVAL_MS` (60s, independent of the poll
+  interval), since they rarely change. `RLS` layer-source checks (the
+  latency-sensitive one) run every tick regardless, and no longer queue
+  behind that traffic almost all of the time.
 - `updateStatus` now only fires on a real transition (new `setStatus`
   wrapper tracks the last status/message). Previously the success branch
   called `updateStatus(Ok, 'Connected')` on every single response, so a

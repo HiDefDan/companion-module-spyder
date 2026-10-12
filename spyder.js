@@ -2,6 +2,7 @@ import { combineRgb, Regex, UDPHelper } from '@companion-module/base'
 import { runEntrypoint, InstanceBase, InstanceStatus } from '@companion-module/base'
 import { compileActionDefinitions } from './actions.js'
 import { GetFeedbackDefinitions } from './feedbacks.js'
+import { GetPresetDefinitions } from './presets.js'
 
 const Upgradereg = []
 
@@ -9,8 +10,10 @@ const Upgradereg = []
 // Studio), unlike layer-source state which can change on every cue. Rather
 // than re-fetching both full lists (plus RRD+SCR per command key) on every
 // poll tick -- competing with the RLS layer checks that actually drive
-// visible feedback latency -- they're only refetched every Nth tick.
-const DISCOVERY_EVERY_N_POLLS = 10
+// visible feedback latency -- they're only refetched on this slower,
+// wall-clock-based interval (independent of the poll-interval config, so
+// a fast feedback-latency setting doesn't also speed this up).
+const DISCOVERY_INTERVAL_MS = 60000
 
 // Fixed 10-byte UDP header the Spyder protocol requires in front of every
 // command: ASCII "spyder" + four 0x00 bytes.
@@ -155,13 +158,14 @@ class SpyderInstance extends InstanceBase {
 		this.setStatus(InstanceStatus.Connecting, msg)
 		this.setActionDefinitions(compileActionDefinitions(this))
 		this.setFeedbackDefinitions(GetFeedbackDefinitions(this))
+		this.setPresetDefinitions(GetPresetDefinitions())
 		this.pending = []
 		this.nextCmd = []
 		this.status = {}
 		this.layerSource = {} // keyed by protocol layer id (human layer + 1)
 		this.watchedLayers = [] // populated once RLC answers -- see the 'RLC' case below
 		this.pollRateMs = Number(this.config.pollRateMs) || 2500
-		this.pollTick = 0
+		this.lastDiscoveryAt = 0 // far enough in the past that the first poll() is always a discovery tick
 		this.init_udp()
 	}
 
@@ -389,15 +393,17 @@ class SpyderInstance extends InstanceBase {
 			}
 		} else {
 			// Every tick: a layer-source read-back for each real layer -- this
-			// is the one that matters for visible feedback latency. Every Nth
-			// tick only: also refresh the cached source and command-key lists
-			// (rarely change, so don't need to compete for a queue slot on
-			// every single tick).
+			// is the one that matters for visible feedback latency. At most
+			// once every DISCOVERY_INTERVAL_MS: also refresh the cached source
+			// and command-key lists (rarely change, so don't need to compete
+			// for a queue slot on every single tick). Also triggered on-demand
+			// by the 'rrl_refresh' action, which sets lastDiscoveryAt itself.
 			const layers = [...this.watchedLayers]
-			const isDiscoveryTick = this.pollTick % DISCOVERY_EVERY_N_POLLS === 0
-			this.pollTick++
+			const now = Date.now()
+			const isDiscoveryTick = now - this.lastDiscoveryAt >= DISCOVERY_INTERVAL_MS
 
 			if (isDiscoveryTick) {
+				this.lastDiscoveryAt = now
 				for (const layer of layers) {
 					this.nextCmd.push(`RLS ${layer}`)
 				}
