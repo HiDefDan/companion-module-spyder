@@ -20,6 +20,13 @@ not one per commit.
   command keys), exposed as `src_<N>` variables, and feed the `sra`
   action's "Source Name" option as a live dropdown (still `allowCustom`,
   so a typed name or `$(...)` expression still works).
+- "Poll interval (ms)" connection config field (default 2500, 500-30000)
+  controls how often register/source/layer-source polling runs.
+- `RLC` (Request Layer Count) is now parsed at connect and used to
+  validate `sra`'s layer number(s) before sending -- out-of-range layers
+  are dropped individually (with a warning logged) rather than silently
+  sent to a layer that doesn't exist; skipped entirely if no `RLC`
+  response has landed yet.
 
 ### Changed
 - Outgoing commands are now sent as an explicit byte buffer (fixed header +

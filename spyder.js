@@ -159,6 +159,7 @@ class SpyderInstance extends InstanceBase {
 		this.status = {}
 		this.layerSource = {} // keyed by protocol layer id (human layer + 1)
 		this.watchedLayers = parseLayerList(this.config.watchLayers).map((humanLayer) => String(humanLayer + 1))
+		this.pollRateMs = Number(this.config.pollRateMs) || 2500
 		this.init_udp()
 	}
 
@@ -275,6 +276,16 @@ class SpyderInstance extends InstanceBase {
 							case 'RLS':
 								this.setLayerSource(cmds[1], decodeURIComponent(msg.slice(2).split(' ')[0] || ''))
 								break
+							case 'RLC': {
+								// Response includes the Spyder's 2 background layers; the
+								// manual says applications should subtract them, so this
+								// becomes the human-numbered (1-based) usable layer count.
+								const logical = parseInt(msg.split(' ')[1])
+								if (!isNaN(logical)) {
+									this.layerCount = logical - 2
+								}
+								break
+							}
 							case 'RRD':
 								const val = msg.split(' ')
 								if (val.length != 4 || cmds[2] == 'NaN') {
@@ -339,7 +350,7 @@ class SpyderInstance extends InstanceBase {
 				this.variableDefs = []
 				this.variableValues = {}
 				this.poll()
-				this.pollTimer = setInterval(async () => await this.poll(), 2500)
+				this.pollTimer = setInterval(async () => await this.poll(), this.pollRateMs)
 			})
 		}
 	}
@@ -398,6 +409,15 @@ class SpyderInstance extends InstanceBase {
 				width: 12,
 				default: '',
 				regex: '/^[\\d\\s,-]*$/',
+			},
+			{
+				type: 'number',
+				id: 'pollRateMs',
+				label: 'Poll interval (ms) -- register/source/layer-source polling',
+				width: 6,
+				default: 2500,
+				min: 500,
+				max: 30000,
 			},
 		]
 	}

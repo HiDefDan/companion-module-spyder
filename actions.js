@@ -37,11 +37,32 @@ export function compileActionDefinitions(self) {
 				const source = (await context.parseVariablesInString(String(action.options.source)))
 					.trim()
 					.replace(/ /g, '%20')
-				const layers = String(action.options.lay)
+				const humanLayers = String(action.options.lay)
 					.trim()
 					.split(/\s+/)
-					.map((n) => String(Number(n) + 1))
-					.join(' ')
+					.map(Number)
+					.filter((n) => !isNaN(n))
+
+				// self.layerCount (from RLC, polled at connect) is the live,
+				// human-numbered usable layer count. Not known yet (e.g. right at
+				// connect) just skips range-checking rather than blocking the action.
+				let valid = humanLayers
+				if (self.layerCount !== undefined) {
+					valid = humanLayers.filter((n) => n >= 1 && n <= self.layerCount)
+					const invalid = humanLayers.filter((n) => !valid.includes(n))
+					if (invalid.length > 0) {
+						self.log(
+							'warn',
+							`sra: layer(s) ${invalid.join(', ')} out of range (this Spyder has ${self.layerCount} layers) -- skipped`,
+						)
+					}
+				}
+				if (valid.length === 0) {
+					self.log('warn', 'sra: no valid layers to apply source to -- not sending')
+					return
+				}
+
+				const layers = valid.map((n) => String(n + 1)).join(' ')
 				await sendCmd(`SRA ${source} ${layers}`)
 			},
 		},
