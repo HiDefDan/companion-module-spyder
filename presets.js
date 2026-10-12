@@ -10,7 +10,12 @@ export function GetPresetDefinitions() {
 				color: 0xffffff,
 				bgcolor: 0x660000,
 			},
-			feedbacks: [],
+			feedbacks: [
+				{
+					feedbackId: 'sav_last_time',
+					options: {},
+				},
+			],
 			steps: [
 				{
 					down: [

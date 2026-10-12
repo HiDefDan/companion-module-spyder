@@ -245,6 +245,15 @@ class SpyderInstance extends InstanceBase {
 		return this.layerSource[String(Number(humanLayer) + 1)] ?? ''
 	}
 
+	// 'HH:MM' (local time, Companion host's clock) of the last SAV that got
+	// a Success response, or undefined if there hasn't been one this
+	// connection -- see the 'SAV' case in the data handler.
+	getLastSaveTime = () => {
+		if (!this.lastSaveAt) return undefined
+		const pad = (n) => String(n).padStart(2, '0')
+		return `${pad(this.lastSaveAt.getHours())}:${pad(this.lastSaveAt.getMinutes())}`
+	}
+
 	async init(config) {
 		this.hasError = false
 		this.config = config
@@ -439,6 +448,10 @@ class SpyderInstance extends InstanceBase {
 								// duplicate variable keyed by Script ID.
 								this.script2reg[val[1]] = cmds[2]
 
+								break
+							case 'SAV':
+								this.lastSaveAt = new Date()
+								this.checkFeedbacks('sav_last_time')
 								break
 						}
 						if (newReg) {

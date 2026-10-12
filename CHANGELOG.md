@@ -39,6 +39,10 @@ not one per commit.
 - `sav` action (Force Server Save): no options, just sends `SAV` to force
   the Spyder to persist current config/state to non-volatile storage.
   Also available as a preset ("Force Server Save", Utility category).
+- `sav_last_time` feedback ("Last Save Time"): advanced feedback that
+  appends `Last: HH:MM` to the button text once a `SAV` has gotten a
+  Success response this connection; no override before that. Wired
+  into the "Force Server Save" preset by default.
 
 ### Changed
 - All actions now go through `cueCmd` instead of calling `sendCmd`

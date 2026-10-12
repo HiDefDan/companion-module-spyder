@@ -13,6 +13,17 @@ export function GetFeedbackDefinitions(self) {
 	}
 
 	return {
+		sav_last_time: {
+			type: 'advanced',
+			name: 'Last Save Time',
+			description: 'Appends the HH:MM of the last successful Force Server Save to the button text. No override until the first save this connection.',
+			options: [],
+			callback: () => {
+				const hhmm = self.getLastSaveTime()
+				return hhmm ? { text: `Force\nServer Save\nLast: ${hhmm}` } : {}
+			},
+		},
+
 		layer_source_is: {
 			type: 'boolean',
 			name: 'Layer source is',
