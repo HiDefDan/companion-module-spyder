@@ -74,6 +74,53 @@ function describeCmd(cmd) {
 	return fullName ? `${fullName} (${readable})` : readable
 }
 
+// Named-field summary of a response body, for the five commands this
+// module sends itself (the ones with a structured payload beyond the
+// bare result code -- RLC/RLS/RRL/RRD/SCR). Everything else (one-shot
+// action commands like SRA/ASC/...) has a bare '<Result Code>' response
+// per the manual, nothing more to show, so it falls back to the
+// %20-decoded body as-is. cmds is the request's tokens (already parsed
+// by the caller); mirrors the real parsing elsewhere in this file, but
+// kept separate since this is purely for display and allowed to be a
+// little more forgiving of unexpected shapes.
+function describeResponseBody(cmds, resultCode, msg) {
+	if (resultCode === '1') {
+		// 'Empty' -- the data requested isn't available right now. No
+		// structured payload to decode per the manual, beyond RLS's own
+		// documented meaning for it.
+		return cmds[0] === 'RLS' ? 'no source assigned' : 'no data available'
+	}
+	if (resultCode !== '0') {
+		return humanizeArgs(msg) // an error response -- nothing structured to decode
+	}
+	const body = msg.slice(2)
+	const parts = body.length ? body.split(' ') : []
+	switch (cmds[0]) {
+		case 'RLC': {
+			const logical = parseInt(parts[0])
+			return isNaN(logical) ? humanizeArgs(msg) : `${logical} layers reported (${logical - 2} usable, excl. 2 background)`
+		}
+		case 'RLS':
+			return `source="${decodeURIComponent(parts[0] ?? '')}" (sourceId=${parts[1] ?? '?'})`
+		case 'RRL': {
+			const count = parts[0]
+			const items = []
+			for (let i = 1; i < parts.length; i += 2) {
+				items.push(`${parts[i]}=${decodeURIComponent(parts[i + 1] ?? '')}`)
+			}
+			return `${count} register(s): ${items.join(', ')}`
+		}
+		case 'RRD': {
+			const [scriptId, relative, numCues] = parts
+			return `scriptId=${scriptId}, relative=${relative === '1' ? 'yes' : 'no'}, numCues=${numCues}`
+		}
+		case 'SCR':
+			return `active=${parts[0] === '1' ? 'yes' : 'no'}`
+		default:
+			return humanizeArgs(msg)
+	}
+}
+
 // Fixed 10-byte UDP header the Spyder protocol requires in front of every
 // command: ASCII "spyder" + four 0x00 bytes.
 const HEADER_BYTES = Buffer.from([0x73, 0x70, 0x79, 0x64, 0x65, 0x72, 0x00, 0x00, 0x00, 0x00])
@@ -275,7 +322,7 @@ class SpyderInstance extends InstanceBase {
 				const resultName = RESULT_CODE_NAMES[resultCode] ?? `Unknown code ${resultCode}`
 				this.log(
 					resultCode === '0' || resultCode === '1' ? 'info' : 'warn',
-					`Received for ${describeCmd(cmd.cmd)}: ${resultName} -- ${humanizeArgs(msg)}`,
+					`Received for ${describeCmd(cmd.cmd)}: ${resultName} -- ${describeResponseBody(cmds, resultCode, msg)}`,
 				)
 
 				switch (msg.slice(0, 1)) {

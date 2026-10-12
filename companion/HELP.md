@@ -64,7 +64,12 @@ decoding is display-only, never sent. Every
 response is logged too, decoded against the protocol's result-code table
 (`info` for Success/Empty, `warn` for anything else -- Header/invalid
 command, Argument count/value, Execution, or an unexpected/unmatched
-response). The protocol gives responses no sequence number and no echo
+response). For the five commands this module sends itself (`RLC`,
+`RLS`, `RRL`, `RRD`, `SCR`) the response body is further decoded into
+named fields -- e.g. `Received for Script Cue Request (SCR 0 R):
+Success -- active=yes` instead of a bare `0 1`. Action commands
+(`SRA`, `ASC`, ...) just get Success/fail, per the manual's own
+documented response for those. The protocol gives responses no sequence number and no echo
 of the request that caused them -- correctness depends entirely on never
 having more than one command outstanding at once, which is why every
 action goes through the same queue as the periodic poll rather than

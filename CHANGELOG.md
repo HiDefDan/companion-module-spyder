@@ -55,6 +55,12 @@ not one per commit.
   decoded against the protocol's result-code table and leveled `info`
   (Success/Empty) or `warn` (everything else, including a response
   that arrives with nothing pending to match it to).
+- New `describeResponseBody()` further decodes the response for the
+  five commands this module sends itself (`RLC`/`RLS`/`RRL`/`RRD`/`SCR`)
+  into named fields, e.g. `SCR 0 R` -> `Success -- active=yes` instead
+  of `Success -- 0 1`. Action commands have a bare `<Result Code>`
+  response per the manual, so they're unaffected -- nothing more to
+  decode there.
 - `sra` now immediately follows its `SRA` send with an `RLS` for exactly
   the layer(s) it just applied, so `layer_source_is` confirms the change
   right away instead of waiting on the next periodic poll.
