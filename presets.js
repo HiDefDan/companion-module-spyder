@@ -204,8 +204,8 @@ export function GetPresetDefinitions(self) {
 					fontsize: 100,
 					fontsizeAllowShrink: true,
 					color: 0xffffff,
-					halign: 'center',
-					valign: 'center',
+					halign: 'right',
+					valign: 'top',
 				},
 				{
 					// Position/size and font size per the user's own live-tuned
@@ -225,7 +225,7 @@ export function GetPresetDefinitions(self) {
 					fontsize: 38,
 					fontsizeAllowShrink: false,
 					color: 0xffffff,
-					halign: 'center',
+					halign: 'left',
 					valign: 'top',
 				},
 				{
@@ -240,8 +240,8 @@ export function GetPresetDefinitions(self) {
 					fontsize: 85,
 					fontsizeAllowShrink: true,
 					color: 0xaaaaaa,
-					halign: 'center',
-					valign: 'center',
+					halign: 'left',
+					valign: 'bottom',
 				},
 			],
 			feedbacks: [],

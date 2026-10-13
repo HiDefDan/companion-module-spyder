@@ -502,3 +502,8 @@ phase.
   short (1-line) source name starts at the same vertical position as a
   long (2-line) one instead of floating differently depending on how
   much text there is.
+- Corner-justified the other two `layer_select_display` elements per
+  the user's own layout spec: `selLayerSrc`'s `label` element is now
+  top-left (`halign: left`, was `center`), `layerNum` top-right
+  (`halign: right`), `pos` bottom-left (`valign: bottom`, `halign:
+  left`).
