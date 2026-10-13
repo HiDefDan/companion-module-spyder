@@ -475,3 +475,6 @@ phase.
   text labels, not unicode arrow glyphs -- unconfirmed whether those
   render correctly in Companion's font rendering, and the rest of this
   module's labeling has deliberately stuck to plain ASCII throughout).
+- 4x still reported too fast for a clean single-pixel dab. Bumped
+  `NUDGE_INTERVAL_MULTIPLIER` to 15 (user-specified exact figure: 250ms
+  at the 60Hz family) rather than guessing another multiplier blind.

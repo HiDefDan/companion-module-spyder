@@ -70,12 +70,11 @@ const NUDGE_STEPS = [1, 10, 100]
 // single-pixel precision: a human tap easily lasts 50-200ms, comfortably
 // longer than that interval, so almost every "quick dab" was also
 // triggering several unwanted repeat moves before release could stop it.
-// 4x (user's own estimate, not yet fully live-tested -- their team was
-// using the venue for rehearsal) gives a real grace window between the
-// immediate first move and the first repeat. Scales the whole
+// 4x (~66.7ms at 60Hz) was tried next and still reported too fast. 15x
+// (~250ms at 60Hz, user-specified) tried third. Scales the whole
 // sqrt(step)-accelerated curve uniformly, not just the 1px case, so the
 // acceleration ratio between step sizes is unchanged.
-const NUDGE_INTERVAL_MULTIPLIER = 4
+const NUDGE_INTERVAL_MULTIPLIER = 15
 
 // Greedy two-line word-wrap for the display key's source-name lines (see
 // companion-expression-text-no-live-refresh memory -- no live scroll, so
