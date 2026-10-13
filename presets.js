@@ -1,8 +1,7 @@
 export function GetPresetDefinitions(self) {
 	const presets = {
 		force_server_save: {
-			type: 'button',
-			category: 'Utility',
+			type: 'simple',
 			name: 'Force Server Save',
 			style: {
 				text: `${self.label}\nSAVE`,
@@ -30,8 +29,7 @@ export function GetPresetDefinitions(self) {
 		},
 
 		cue_rev: {
-			type: 'button',
-			category: 'Script Cue',
+			type: 'simple',
 			name: 'Cue Back (REV)',
 			style: {
 				text: '<<<\nREV',
@@ -54,8 +52,7 @@ export function GetPresetDefinitions(self) {
 		},
 
 		cue_fwd: {
-			type: 'button',
-			category: 'Script Cue',
+			type: 'simple',
 			name: 'Cue Advance (FWD)',
 			style: {
 				text: '>>>\nFWD',
@@ -78,8 +75,7 @@ export function GetPresetDefinitions(self) {
 		},
 
 		rrl_refresh_both: {
-			type: 'button',
-			category: 'Utility',
+			type: 'simple',
 			name: 'Refresh Sources & Command Keys Now',
 			style: {
 				text: 'Refresh\nSrc + Keys',
@@ -102,6 +98,8 @@ export function GetPresetDefinitions(self) {
 		},
 	}
 
+	const commandKeyIds = []
+
 	// One preset per currently-discovered command key -- mirrors the
 	// ST420 Shotbox's "Read CMD Keys" auto-populate, but kept live: this
 	// is regenerated (spyder.js calls setPresetDefinitions again)
@@ -115,9 +113,10 @@ export function GetPresetDefinitions(self) {
 	// a literal string baked in at drop time.
 	for (const key of Object.values(self.reg ?? {})) {
 		const label = key.name || `(unnamed, Key ${key.id + 1})`
-		presets[`recall_key_${key.id}`] = {
-			type: 'button',
-			category: 'Command Keys',
+		const presetId = `recall_key_${key.id}`
+		commandKeyIds.push(presetId)
+		presets[presetId] = {
+			type: 'simple',
 			name: label,
 			style: {
 				text: `$(spyder:cKey_rID_${key.id + 1})`,
@@ -153,5 +152,14 @@ export function GetPresetDefinitions(self) {
 		}
 	}
 
-	return presets
+	// API v2 replaced each preset's own `category` field with a separate
+	// "structure" of sections passed alongside the presets themselves to
+	// setPresetDefinitions(structure, presets).
+	const structure = [
+		{ id: 'utility', name: 'Utility', definitions: ['force_server_save', 'rrl_refresh_both'] },
+		{ id: 'script_cue', name: 'Script Cue', definitions: ['cue_rev', 'cue_fwd'] },
+		{ id: 'command_keys', name: 'Command Keys', definitions: commandKeyIds },
+	]
+
+	return { structure, presets }
 }

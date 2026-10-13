@@ -8,6 +8,50 @@ not one per commit.
 
 ## [Unreleased]
 
+### Migration: @companion-module/base 1.14.1 -> 2.2.1 (API v2)
+Phase 1 of a two-phase upgrade -- gets the module running on the new major
+API with equivalent behavior to before. Phase 2 (separate, not done yet)
+converts the per-key presets to the new "layered" graphics preset format
+so they can set a font, which only exists on that path (see below).
+
+- `package.json`: `@companion-module/base` ^1.8.0 -> ^2.2.1,
+  `@companion-module/tools` ^2.8.0 -> ^3.1.1 (required for the 2.2.1
+  manifest validator to even load -- 2.8.0 imports `validateManifest`
+  from a path 2.2.1 no longer exports it from).
+- `companion/manifest.json`: added required top-level `"type":
+  "connection"`; `runtime.type` "node18" -> "node26" (node26 "corresponds
+  to Companion 5.0" per Bitfocus's own docs, and the live server here is
+  5.0.5, so no runtime-support blocker).
+- `spyder.js`: removed `runEntrypoint`, now `export default SpyderInstance`
+  + `export const UpgradeScripts = Upgradereg` (empty array, unchanged).
+  `udp.send()` -> `udp.sendAsync()` (send is now synchronous in 2.x;
+  sendAsync is the new promise-based equivalent, keeping `sendCmd`'s
+  await-based error handling intact). `variableDefs` changed from an
+  array of `{name, variableId}` to an object keyed by variable id (new
+  `setVariableDefinitions` shape). `setPresetDefinitions` is now a
+  2-argument call (`structure`, `presets`) instead of one flat object.
+- `presets.js`: `GetPresetDefinitions` now returns `{structure, presets}`
+  instead of just `presets`. Each preset's `type` changed from `'button'`
+  to `'simple'` (required). The flat per-preset `category` field is gone
+  -- replaced by a `structure` array of sections (Utility, Script Cue,
+  Command Keys) built alongside the presets and passed as
+  `setPresetDefinitions`'s first argument.
+- `actions.js`: `sra`'s callback no longer calls
+  `context.parseVariablesInString` -- Companion now resolves
+  `$(...)` variables/expressions in option values automatically before
+  the callback runs, so `action.options.source` already arrives resolved.
+- `yarn.lock`: updated via `npm install` (no local yarn/corepack
+  available) -- correct versions, but npm-flavored resolution
+  (registry.npmjs.org URLs, not yarn-native). Needs a real `yarn install`
+  from a machine with yarn/corepack to regenerate properly before any
+  upstream PR.
+
+Verified via `node --check` on every changed file, a clean
+`companion-module-check` manifest validation, and a full
+`companion-module-build --dev` (real esbuild bundle through the actual
+entrypoint) with no errors. Not yet verified against a live Companion
+connection -- that's the next step.
+
 ### Added
 - `sra` action (Source Apply): assigns a named source to one or more layers,
   auto-escaping in-value spaces to the literal `%20` the protocol requires

@@ -1,5 +1,5 @@
 import { combineRgb, Regex, UDPHelper } from '@companion-module/base'
-import { runEntrypoint, InstanceBase, InstanceStatus } from '@companion-module/base'
+import { InstanceBase, InstanceStatus } from '@companion-module/base'
 import { compileActionDefinitions } from './actions.js'
 import { GetFeedbackDefinitions } from './feedbacks.js'
 import { GetPresetDefinitions } from './presets.js'
@@ -222,7 +222,7 @@ class SpyderInstance extends InstanceBase {
 			const packet = buildPacket(cmd)
 			this.log('info', `Sending: ${describeCmd(cmd)}`)
 			this.log('debug', `Sending hex: ${packet.toString('hex')}`)
-			await this.udp.send(packet)
+			await this.udp.sendAsync(packet)
 			// save cmd for to store with next incoming response
 			this.pending.push({ cmd: c, sent: now })
 			this.lastCmd = cmd
@@ -279,7 +279,8 @@ class SpyderInstance extends InstanceBase {
 		this.setStatus(InstanceStatus.Connecting, msg)
 		this.setActionDefinitions(compileActionDefinitions(this))
 		this.setFeedbackDefinitions(GetFeedbackDefinitions(this))
-		this.setPresetDefinitions(GetPresetDefinitions(this))
+		const { structure: presetStructure, presets } = GetPresetDefinitions(this)
+		this.setPresetDefinitions(presetStructure, presets)
 		this.pending = []
 		this.nextCmd = []
 		this.status = {}
@@ -380,7 +381,8 @@ class SpyderInstance extends InstanceBase {
 											// dropdown choices, same as sources below.
 											this.setActionDefinitions(compileActionDefinitions(this))
 											this.setFeedbackDefinitions(GetFeedbackDefinitions(this))
-											this.setPresetDefinitions(GetPresetDefinitions(this))
+											const { structure: presetStructure, presets } = GetPresetDefinitions(this)
+											this.setPresetDefinitions(presetStructure, presets)
 											this.log(
 												'info',
 												`Command key list changed (+${changedIds.size} added/renamed, -${removedIds.size} removed) -- ` +
@@ -472,16 +474,20 @@ class SpyderInstance extends InstanceBase {
 							// rename/add/delete in either stays in sync, and a command key's
 							// description reads "Command Key: <name>" (the term the user
 							// actually sees in Spyder Studio, not the internal "Register").
-							this.variableDefs = [
-								...Object.values(this.reg).map((reg) => ({
-									name: `Command Key: ${reg.name || '(unnamed)'}`,
-									variableId: `cKey_rID_${reg.id + 1}`,
-								})),
-								...Object.values(this.sources).map((src) => ({
-									name: `Source: ${src.name || '(unnamed)'}`,
-									variableId: `src_${src.id + 1}`,
-								})),
-							]
+							this.variableDefs = {
+								...Object.fromEntries(
+									Object.values(this.reg).map((reg) => [
+										`cKey_rID_${reg.id + 1}`,
+										{ name: `Command Key: ${reg.name || '(unnamed)'}` },
+									]),
+								),
+								...Object.fromEntries(
+									Object.values(this.sources).map((src) => [
+										`src_${src.id + 1}`,
+										{ name: `Source: ${src.name || '(unnamed)'}` },
+									]),
+								),
+							}
 							this.setVariableDefinitions(this.variableDefs)
 						}
 						if (newNames) {
@@ -508,7 +514,7 @@ class SpyderInstance extends InstanceBase {
 				this.reg = {}
 				this.script2reg = {}
 				this.sources = {} // keyed by source register id; feeds src_<N> variables and the sra action's dropdown
-				this.variableDefs = []
+				this.variableDefs = {}
 				this.variableValues = {}
 				this.poll()
 				this.pollTimer = setInterval(async () => await this.poll(), this.pollRateMs)
@@ -599,4 +605,5 @@ class SpyderInstance extends InstanceBase {
 	}
 }
 
-runEntrypoint(SpyderInstance, Upgradereg)
+export default SpyderInstance
+export const UpgradeScripts = Upgradereg

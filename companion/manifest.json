@@ -1,4 +1,5 @@
 {
+	"type": "connection",
 	"id": "christie-spyder",
 	"name": "christie-spyder",
 	"shortname": "spyder",
@@ -21,7 +22,7 @@
 		"spyder"
 	],
 	"runtime": {
-		"type": "node18",
+		"type": "node26",
 		"api": "nodejs-ipc",
 		"apiVersion": "0.0.0",
 		"entrypoint": "../spyder.js"

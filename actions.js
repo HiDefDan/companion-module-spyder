@@ -147,10 +147,11 @@ export function compileActionDefinitions(self) {
 					regex: '/^\\s*[1-9]\\d*(\\s+[1-9]\\d*)*\\s*$/',
 				},
 			],
-			callback: async (action, context) => {
-				const source = (await context.parseVariablesInString(String(action.options.source)))
-					.trim()
-					.replace(/ /g, '%20')
+			callback: async (action) => {
+				// API v2: Companion resolves $(...) variables/expressions in option
+				// values automatically before the callback runs -- action.options.source
+				// already arrives fully resolved, no parseVariablesInString needed.
+				const source = String(action.options.source).trim().replace(/ /g, '%20')
 				const humanLayers = String(action.options.lay)
 					.trim()
 					.split(/\s+/)
