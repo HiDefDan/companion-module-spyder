@@ -140,7 +140,7 @@ export function GetPresetDefinitions(self) {
 			type: 'layered',
 			name: 'Select Target Layer: Prev',
 			elements: [
-				{ id: 'bg', type: 'box', color: 0x330033 },
+				{ id: 'bg', type: 'box', color: 0x1a3340 },
 				{
 					id: 'label',
 					type: 'text',
@@ -161,7 +161,7 @@ export function GetPresetDefinitions(self) {
 			type: 'layered',
 			name: 'Select Target Layer: Next',
 			elements: [
-				{ id: 'bg', type: 'box', color: 0x003333 },
+				{ id: 'bg', type: 'box', color: 0x1a3340 },
 				{
 					id: 'label',
 					type: 'text',
@@ -192,11 +192,15 @@ export function GetPresetDefinitions(self) {
 			elements: [
 				{ id: 'bg', type: 'box', color: 0x202020 },
 				{
+					// x/y/width/height kept inside the 5-95 safe-text box (a
+					// Stream Deck key's outer ~5% on every edge is unreliable
+					// for text -- confirmed by the user's own hardware) rather
+					// than the 0-100 full-bleed box used before.
 					id: 'layerNum',
 					type: 'text',
-					x: 0,
-					y: 0,
-					width: 100,
+					x: 5,
+					y: 5,
+					width: 90,
 					height: 20,
 					text: '$(spyder:selLayerNum)',
 					font: 'companion-mono',
@@ -231,12 +235,15 @@ export function GetPresetDefinitions(self) {
 					valign: 'top',
 				},
 				{
+					// Same 5-95 safe-text box as layerNum above (was x:0,y:74,
+					// w:100,h:26 -- flush to the left/right/bottom edges and
+					// actually overshooting the bottom at y:100).
 					id: 'pos',
 					type: 'text',
-					x: 0,
-					y: 74,
-					width: 100,
-					height: 26,
+					x: 5,
+					y: 70,
+					width: 90,
+					height: 25,
 					text: '$(spyder:selLayerPos)',
 					font: 'companion-mono',
 					fontsize: 85,
@@ -271,20 +278,30 @@ export function GetPresetDefinitions(self) {
 			steps: [{ down: [{ actionId: 'cycle_nudge_step', options: {} }], up: [] }],
 		},
 
-		// Four directions, each a simple bg+arrow label. nudge_start fires on
-		// down (immediate first move + starts the repeat timer while held),
-		// nudge_stop (same direction) fires on up (stops the repeat timer).
-		// See spyder.js's startNudge/stopNudge/doNudge for the actual
-		// throttle/acceleration behavior.
+		// Eight directions, each a simple bg+arrow label. Unicode glyphs
+		// (same "Arrows" block, U+2190-U+2199, so all 8 share one visual
+		// family/stroke-weight) -- user-specified after confirming the
+		// diagonals render fine in companion-mono; an earlier version of
+		// this module avoided them for being unconfirmed, no longer true.
+		// nudge_start fires on down (immediate first move + starts the
+		// repeat timer while held), nudge_stop (same direction) fires on up
+		// (stops the repeat timer). See spyder.js's
+		// startNudge/stopNudge/doNudge for the actual throttle behavior.
+		//
+		// bg tints live by target function so the arrows themselves show
+		// what they're about to move: dim base (shouldn't normally be
+		// seen, targetFunction is always 'pos' or 'clone'), medium blue
+		// when targeting Pos, bright cyan (same hue family, brighter) when
+		// targeting Clone -- same hue throughout, two brightness tiers.
 		nudge_up: {
 			type: 'layered',
 			name: 'Nudge Selected Layer: Up',
 			elements: [
-				{ id: 'bg', type: 'box', color: 0x1a1a33 },
+				{ id: 'bg', type: 'box', color: 0x1a2b33 },
 				{
 					id: 'label',
 					type: 'text',
-					text: '^',
+					text: '↑',
 					font: 'companion-mono',
 					fontsize: 150,
 					fontsizeAllowShrink: true,
@@ -293,7 +310,18 @@ export function GetPresetDefinitions(self) {
 					valign: 'center',
 				},
 			],
-			feedbacks: [],
+			feedbacks: [
+				{
+					feedbackId: 'is_target_function',
+					options: { function: 'pos' },
+					styleOverrides: [{ elementId: 'bg', elementProperty: 'color', override: { value: 0x2d5a73, isExpression: false } }],
+				},
+				{
+					feedbackId: 'is_target_function',
+					options: { function: 'clone' },
+					styleOverrides: [{ elementId: 'bg', elementProperty: 'color', override: { value: 0x4fc3f7, isExpression: false } }],
+				},
+			],
 			steps: [
 				{
 					down: [{ actionId: 'nudge_start', options: { direction: 'up' } }],
@@ -306,11 +334,11 @@ export function GetPresetDefinitions(self) {
 			type: 'layered',
 			name: 'Nudge Selected Layer: Down',
 			elements: [
-				{ id: 'bg', type: 'box', color: 0x1a1a33 },
+				{ id: 'bg', type: 'box', color: 0x1a2b33 },
 				{
 					id: 'label',
 					type: 'text',
-					text: 'v',
+					text: '↓',
 					font: 'companion-mono',
 					fontsize: 150,
 					fontsizeAllowShrink: true,
@@ -319,7 +347,18 @@ export function GetPresetDefinitions(self) {
 					valign: 'center',
 				},
 			],
-			feedbacks: [],
+			feedbacks: [
+				{
+					feedbackId: 'is_target_function',
+					options: { function: 'pos' },
+					styleOverrides: [{ elementId: 'bg', elementProperty: 'color', override: { value: 0x2d5a73, isExpression: false } }],
+				},
+				{
+					feedbackId: 'is_target_function',
+					options: { function: 'clone' },
+					styleOverrides: [{ elementId: 'bg', elementProperty: 'color', override: { value: 0x4fc3f7, isExpression: false } }],
+				},
+			],
 			steps: [
 				{
 					down: [{ actionId: 'nudge_start', options: { direction: 'down' } }],
@@ -332,11 +371,11 @@ export function GetPresetDefinitions(self) {
 			type: 'layered',
 			name: 'Nudge Selected Layer: Left',
 			elements: [
-				{ id: 'bg', type: 'box', color: 0x1a1a33 },
+				{ id: 'bg', type: 'box', color: 0x1a2b33 },
 				{
 					id: 'label',
 					type: 'text',
-					text: '<',
+					text: '←',
 					font: 'companion-mono',
 					fontsize: 150,
 					fontsizeAllowShrink: true,
@@ -345,7 +384,18 @@ export function GetPresetDefinitions(self) {
 					valign: 'center',
 				},
 			],
-			feedbacks: [],
+			feedbacks: [
+				{
+					feedbackId: 'is_target_function',
+					options: { function: 'pos' },
+					styleOverrides: [{ elementId: 'bg', elementProperty: 'color', override: { value: 0x2d5a73, isExpression: false } }],
+				},
+				{
+					feedbackId: 'is_target_function',
+					options: { function: 'clone' },
+					styleOverrides: [{ elementId: 'bg', elementProperty: 'color', override: { value: 0x4fc3f7, isExpression: false } }],
+				},
+			],
 			steps: [
 				{
 					down: [{ actionId: 'nudge_start', options: { direction: 'left' } }],
@@ -358,11 +408,11 @@ export function GetPresetDefinitions(self) {
 			type: 'layered',
 			name: 'Nudge Selected Layer: Right',
 			elements: [
-				{ id: 'bg', type: 'box', color: 0x1a1a33 },
+				{ id: 'bg', type: 'box', color: 0x1a2b33 },
 				{
 					id: 'label',
 					type: 'text',
-					text: '>',
+					text: '→',
 					font: 'companion-mono',
 					fontsize: 150,
 					fontsizeAllowShrink: true,
@@ -371,7 +421,18 @@ export function GetPresetDefinitions(self) {
 					valign: 'center',
 				},
 			],
-			feedbacks: [],
+			feedbacks: [
+				{
+					feedbackId: 'is_target_function',
+					options: { function: 'pos' },
+					styleOverrides: [{ elementId: 'bg', elementProperty: 'color', override: { value: 0x2d5a73, isExpression: false } }],
+				},
+				{
+					feedbackId: 'is_target_function',
+					options: { function: 'clone' },
+					styleOverrides: [{ elementId: 'bg', elementProperty: 'color', override: { value: 0x4fc3f7, isExpression: false } }],
+				},
+			],
 			steps: [
 				{
 					down: [{ actionId: 'nudge_start', options: { direction: 'right' } }],
@@ -380,19 +441,15 @@ export function GetPresetDefinitions(self) {
 			],
 		},
 
-		// Diagonals -- text labels (UL/UR/DL/DR) rather than unicode arrow
-		// glyphs (↖↗↙↘), since those aren't confirmed to render correctly
-		// in Companion's font rendering and the rest of this module's
-		// labeling has deliberately stuck to plain ASCII throughout.
 		nudge_upleft: {
 			type: 'layered',
 			name: 'Nudge Selected Layer: Up-Left',
 			elements: [
-				{ id: 'bg', type: 'box', color: 0x1a1a33 },
+				{ id: 'bg', type: 'box', color: 0x1a2b33 },
 				{
 					id: 'label',
 					type: 'text',
-					text: 'UL',
+					text: '↖',
 					font: 'companion-mono',
 					fontsize: 120,
 					fontsizeAllowShrink: true,
@@ -401,7 +458,18 @@ export function GetPresetDefinitions(self) {
 					valign: 'center',
 				},
 			],
-			feedbacks: [],
+			feedbacks: [
+				{
+					feedbackId: 'is_target_function',
+					options: { function: 'pos' },
+					styleOverrides: [{ elementId: 'bg', elementProperty: 'color', override: { value: 0x2d5a73, isExpression: false } }],
+				},
+				{
+					feedbackId: 'is_target_function',
+					options: { function: 'clone' },
+					styleOverrides: [{ elementId: 'bg', elementProperty: 'color', override: { value: 0x4fc3f7, isExpression: false } }],
+				},
+			],
 			steps: [
 				{
 					down: [{ actionId: 'nudge_start', options: { direction: 'upleft' } }],
@@ -414,11 +482,11 @@ export function GetPresetDefinitions(self) {
 			type: 'layered',
 			name: 'Nudge Selected Layer: Up-Right',
 			elements: [
-				{ id: 'bg', type: 'box', color: 0x1a1a33 },
+				{ id: 'bg', type: 'box', color: 0x1a2b33 },
 				{
 					id: 'label',
 					type: 'text',
-					text: 'UR',
+					text: '↗',
 					font: 'companion-mono',
 					fontsize: 120,
 					fontsizeAllowShrink: true,
@@ -427,7 +495,18 @@ export function GetPresetDefinitions(self) {
 					valign: 'center',
 				},
 			],
-			feedbacks: [],
+			feedbacks: [
+				{
+					feedbackId: 'is_target_function',
+					options: { function: 'pos' },
+					styleOverrides: [{ elementId: 'bg', elementProperty: 'color', override: { value: 0x2d5a73, isExpression: false } }],
+				},
+				{
+					feedbackId: 'is_target_function',
+					options: { function: 'clone' },
+					styleOverrides: [{ elementId: 'bg', elementProperty: 'color', override: { value: 0x4fc3f7, isExpression: false } }],
+				},
+			],
 			steps: [
 				{
 					down: [{ actionId: 'nudge_start', options: { direction: 'upright' } }],
@@ -440,11 +519,11 @@ export function GetPresetDefinitions(self) {
 			type: 'layered',
 			name: 'Nudge Selected Layer: Down-Left',
 			elements: [
-				{ id: 'bg', type: 'box', color: 0x1a1a33 },
+				{ id: 'bg', type: 'box', color: 0x1a2b33 },
 				{
 					id: 'label',
 					type: 'text',
-					text: 'DL',
+					text: '↙',
 					font: 'companion-mono',
 					fontsize: 120,
 					fontsizeAllowShrink: true,
@@ -453,7 +532,18 @@ export function GetPresetDefinitions(self) {
 					valign: 'center',
 				},
 			],
-			feedbacks: [],
+			feedbacks: [
+				{
+					feedbackId: 'is_target_function',
+					options: { function: 'pos' },
+					styleOverrides: [{ elementId: 'bg', elementProperty: 'color', override: { value: 0x2d5a73, isExpression: false } }],
+				},
+				{
+					feedbackId: 'is_target_function',
+					options: { function: 'clone' },
+					styleOverrides: [{ elementId: 'bg', elementProperty: 'color', override: { value: 0x4fc3f7, isExpression: false } }],
+				},
+			],
 			steps: [
 				{
 					down: [{ actionId: 'nudge_start', options: { direction: 'downleft' } }],
@@ -466,46 +556,13 @@ export function GetPresetDefinitions(self) {
 			type: 'layered',
 			name: 'Nudge Selected Layer: Down-Right',
 			elements: [
-				{ id: 'bg', type: 'box', color: 0x1a1a33 },
+				{ id: 'bg', type: 'box', color: 0x1a2b33 },
 				{
 					id: 'label',
 					type: 'text',
-					text: 'DR',
+					text: '↘',
 					font: 'companion-mono',
 					fontsize: 120,
-					fontsizeAllowShrink: true,
-					color: 0xffffff,
-					halign: 'center',
-					valign: 'center',
-				},
-			],
-			feedbacks: [],
-			steps: [
-				{
-					down: [{ actionId: 'nudge_start', options: { direction: 'downright' } }],
-					up: [{ actionId: 'nudge_stop', options: { direction: 'downright' } }],
-				},
-			],
-		},
-
-		// Which hardware thing the nudge keys act on. Pos is a plain static
-		// button (never touches the device, just a UI-state switch -- see
-		// select_target_pos). Clone's label shows the SELECTED layer's real
-		// polled clone mode (cloneModeDisplay, from RLK) -- never a value
-		// this button itself assumes -- so it never looks like it's about to
-		// jump to the wrong state; cycleCloneMode in spyder.js is what
-		// actually computes/sends the next state from that real value.
-		select_target_pos: {
-			type: 'layered',
-			name: 'Target Function: Layer Position',
-			elements: [
-				{ id: 'bg', type: 'box', color: 0x333300 },
-				{
-					id: 'label',
-					type: 'text',
-					text: 'TARGET\nPOS',
-					font: 'companion-mono',
-					fontsize: 100,
 					fontsizeAllowShrink: true,
 					color: 0xffffff,
 					halign: 'center',
@@ -516,7 +573,81 @@ export function GetPresetDefinitions(self) {
 				{
 					feedbackId: 'is_target_function',
 					options: { function: 'pos' },
-					styleOverrides: [{ elementId: 'bg', elementProperty: 'color', override: { value: 0xff9f40, isExpression: false } }],
+					styleOverrides: [{ elementId: 'bg', elementProperty: 'color', override: { value: 0x2d5a73, isExpression: false } }],
+				},
+				{
+					feedbackId: 'is_target_function',
+					options: { function: 'clone' },
+					styleOverrides: [{ elementId: 'bg', elementProperty: 'color', override: { value: 0x4fc3f7, isExpression: false } }],
+				},
+			],
+			steps: [
+				{
+					down: [{ actionId: 'nudge_start', options: { direction: 'downright' } }],
+					up: [{ actionId: 'nudge_stop', options: { direction: 'downright' } }],
+				},
+			],
+		},
+
+		// Which hardware thing the nudge keys act on. Pos is a plain static
+		// button (never touches the device, just a UI-state switch -- see
+		// select_target_pos). Clone's mode bar shows the SELECTED layer's
+		// real polled clone mode (cloneModeName, from RLK) -- never a value
+		// this button itself assumes -- so it never looks like it's about to
+		// jump to the wrong state; cycleCloneMode in spyder.js is what
+		// actually computes/sends the next state from that real value.
+		//
+		// Both buttons share one 3-bar layout: header title, a thin divider
+		// line, then a middle/footer value area -- same shape as
+		// layer_select_display, and the same shape as each other so Pos and
+		// Clone read as one visual "batch" (func_base/func_boost colors
+		// below, shared with the nudge arrows' tint). Pos has nothing to
+		// put in the footer bar (just its x,y in the middle), Clone's
+		// footer holds the live px offset when in Offset mode (blank
+		// otherwise).
+		select_target_pos: {
+			type: 'layered',
+			name: 'Target Function: Layer Position',
+			elements: [
+				{ id: 'bg', type: 'box', color: 0x263238 },
+				{
+					id: 'header',
+					type: 'text',
+					x: 5,
+					y: 5,
+					width: 90,
+					height: 18,
+					text: 'POSITION',
+					font: 'companion-mono',
+					weight: 'bold',
+					fontsize: 33,
+					fontsizeAllowShrink: true,
+					color: 0xffffff,
+					halign: 'center',
+					valign: 'top',
+				},
+				{ id: 'divider', type: 'box', x: 5, y: 24, width: 90, height: 2, color: 0xffffff },
+				{
+					id: 'value',
+					type: 'text',
+					x: 5,
+					y: 30,
+					width: 90,
+					height: 65,
+					text: '$(spyder:selLayerPos)',
+					font: 'companion-mono',
+					fontsize: 33,
+					fontsizeAllowShrink: true,
+					color: 0xffffff,
+					halign: 'center',
+					valign: 'top',
+				},
+			],
+			feedbacks: [
+				{
+					feedbackId: 'is_target_function',
+					options: { function: 'pos' },
+					styleOverrides: [{ elementId: 'bg', elementProperty: 'color', override: { value: 0x4fc3f7, isExpression: false } }],
 				},
 			],
 			steps: [{ down: [{ actionId: 'select_target_pos', options: {} }], up: [] }],
@@ -526,24 +657,60 @@ export function GetPresetDefinitions(self) {
 			type: 'layered',
 			name: 'Target Function: Cycle Clone Mode',
 			elements: [
-				{ id: 'bg', type: 'box', color: 0x330033 },
+				{ id: 'bg', type: 'box', color: 0x263238 },
 				{
-					id: 'label',
+					id: 'header',
 					type: 'text',
-					text: 'CLONE\n$(spyder:cloneModeDisplay)',
+					x: 5,
+					y: 5,
+					width: 90,
+					height: 18,
+					text: 'CLONE',
 					font: 'companion-mono',
-					fontsize: 100,
+					weight: 'bold',
+					fontsize: 33,
 					fontsizeAllowShrink: true,
 					color: 0xffffff,
 					halign: 'center',
-					valign: 'center',
+					valign: 'top',
+				},
+				{ id: 'divider', type: 'box', x: 5, y: 24, width: 90, height: 2, color: 0xffffff },
+				{
+					id: 'value',
+					type: 'text',
+					x: 5,
+					y: 30,
+					width: 90,
+					height: 35,
+					text: '$(spyder:cloneModeName)',
+					font: 'companion-mono',
+					fontsize: 33,
+					fontsizeAllowShrink: true,
+					color: 0xffffff,
+					halign: 'center',
+					valign: 'top',
+				},
+				{
+					id: 'footer',
+					type: 'text',
+					x: 5,
+					y: 65,
+					width: 90,
+					height: 30,
+					text: '$(spyder:cloneOffsetDisplay)',
+					font: 'companion-mono',
+					fontsize: 33,
+					fontsizeAllowShrink: true,
+					color: 0xaaaaaa,
+					halign: 'center',
+					valign: 'top',
 				},
 			],
 			feedbacks: [
 				{
 					feedbackId: 'is_target_function',
 					options: { function: 'clone' },
-					styleOverrides: [{ elementId: 'bg', elementProperty: 'color', override: { value: 0xff9f40, isExpression: false } }],
+					styleOverrides: [{ elementId: 'bg', elementProperty: 'color', override: { value: 0x4fc3f7, isExpression: false } }],
 				},
 			],
 			steps: [{ down: [{ actionId: 'cycle_clone_mode', options: {} }], up: [] }],

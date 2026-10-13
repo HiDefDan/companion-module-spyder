@@ -448,6 +448,8 @@ export function compileActionDefinitions(self) {
 				const max = self.layerCount || 24
 				self.selectedLayer = self.selectedLayer >= max ? 1 : self.selectedLayer + 1
 				self.cloneArmed = false // different layer -- next Clone press must re-arm, not cycle
+				self.targetFunction = 'pos' // different layer -- don't leave nudge keys silently still armed for Clone
+				self.checkFeedbacks('is_target_function')
 				self.refreshSelectedLayerDisplay()
 				await sendCmd(`RLK ${self.selectedLayer + 1}`)
 			},
@@ -460,6 +462,8 @@ export function compileActionDefinitions(self) {
 				const max = self.layerCount || 24
 				self.selectedLayer = self.selectedLayer <= 1 ? max : self.selectedLayer - 1
 				self.cloneArmed = false // different layer -- next Clone press must re-arm, not cycle
+				self.targetFunction = 'pos' // different layer -- don't leave nudge keys silently still armed for Clone
+				self.checkFeedbacks('is_target_function')
 				self.refreshSelectedLayerDisplay()
 				await sendCmd(`RLK ${self.selectedLayer + 1}`)
 			},

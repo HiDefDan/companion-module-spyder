@@ -8,6 +8,59 @@ not one per commit.
 
 ## [Unreleased]
 
+### Styling/UX pass on the layer-positioning feature
+Four fixes/changes after live-testing the Phase 1-3 feature, all design
+decisions made with the user before building (colour batching, button
+layout, and arrow glyphs were each confirmed/chosen by the user, not
+guessed):
+
+- **Bug: selecting a different layer didn't disarm the target function.**
+  `select_next`/`select_prev` already reset `cloneArmed` on layer change
+  but left `targetFunction` untouched -- so nudging after switching
+  layers while in Clone mode could silently still be sending `LCC`, not
+  `KPS`, for the new layer. Fixed: both actions now also reset
+  `targetFunction = 'pos'` and call `checkFeedbacks('is_target_function')`,
+  matching `select_target_pos`'s own existing reset.
+- **Safe-text-area fix.** `layer_select_display`'s `layerNum` and `pos`
+  elements were flush to the button's edges (`x:0`/`y:0`/`width:100` etc)
+  -- the outer ~5% of a Stream Deck key is an unreliable text area on
+  real hardware. Both reflowed into a shared `x:5..95, y:5..95` safe box
+  (the layered-preset coordinate space is already 0-100 = percent of the
+  button, not raw pixels, so "5% gutter all round" maps directly).
+- **Colour batching.** Was: `select_prev`/`select_next` two unrelated
+  colours, `select_target_pos`/`cycle_clone_mode` two different unrelated
+  colours, and the active-function highlight reused `0xff9f40` -- the
+  exact same orange already meaning "this command key is selected"
+  elsewhere, diluting both meanings. Now: `select_prev`/`select_next`
+  share one flat colour (`0x1a3340`, no "on" state -- they're momentary).
+  `select_target_pos`/`cycle_clone_mode` share one base colour
+  (`0x263238`) and one boosted/active colour (`0x4fc3f7`, bright cyan --
+  a new colour, not the command-key orange) via `is_target_function`.
+  The 8 nudge-arrow presets now also carry `is_target_function` feedbacks
+  tinting their own `bg`: medium (`0x2d5a73`) when targeting Pos, the
+  same bright `0x4fc3f7` as the active selector when targeting Clone --
+  so the arrows themselves show what they're about to move, not just the
+  Pos/Clone selector buttons.
+- **Position/Clone buttons rebuilt as a shared 3-bar layout,** matching
+  `layer_select_display`'s shape: header title, a thin divider line
+  (`divider`, a 2%-tall `box` element), then a value area. `select_target_pos`:
+  header `POSITION`, divider, value = `$(spyder:selLayerPos)` (no footer
+  -- nothing else to show). `cycle_clone_mode`: header `CLONE`, divider,
+  middle = clone mode name only, footer = live px offset (blank unless
+  the real polled mode is Offset). This needed splitting the old combined
+  `cloneModeDisplay` variable (which concatenated the mode name and the
+  px offset into one string, e.g. `"Offset +150"`) into two separate
+  variables -- `cloneModeName` and `cloneOffsetDisplay` -- so each can
+  feed its own bar independently (`spyder.js`'s `refreshSelectedLayerDisplay`
+  already computed both pieces separately before concatenating, so this
+  was just not joining them).
+- **Nudge arrow glyphs:** all 8 directions now use Unicode arrows from
+  the same "Arrows" block (`U+2190..U+2199`) instead of ASCII
+  (`^`/`v`/`<`/`>`/`UL`/`UR`/`DL`/`DR`) -- all 8 share one visual
+  family/stroke-weight. An earlier version of this module avoided these
+  glyphs as "unconfirmed to render in companion-mono"; the user asked for
+  them specifically after confirming the diagonals render fine live.
+
 ### Migration: @companion-module/base 1.14.1 -> 2.1.3 (API v2)
 Phase 1 of a two-phase upgrade -- gets the module running on the new major
 API with equivalent behavior to before. Phase 2 converts the per-key

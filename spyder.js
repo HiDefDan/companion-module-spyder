@@ -24,7 +24,8 @@ const STATIC_VARIABLE_DEFS = {
 	selLayerSrc: { name: 'Selected Layer: Source' },
 	selLayerPos: { name: 'Selected Layer: X,Y Position' },
 	nudgeStep: { name: 'Nudge Step Size (px)' },
-	cloneModeDisplay: { name: 'Selected Layer: Clone Mode (Off / Mirror / Offset, + px offset if Offset)' },
+	cloneModeName: { name: 'Selected Layer: Clone Mode Name (Off / Mirror / Offset)' },
+	cloneOffsetDisplay: { name: 'Selected Layer: Clone Offset in px (blank unless mode is Offset)' },
 }
 
 // LCC's own <Mode> values/names, straight from the manual.
@@ -387,18 +388,20 @@ class SpyderInstance extends InstanceBase {
 		const [srcLine1, srcLine2] = wrapSourceName(this.getLayerSource(this.selectedLayer))
 		const layerId = this.selectedProtocolId()
 		const cloneMode = this.cloneMode?.[layerId]
-		let cloneModeDisplay = CLONE_MODE_NAMES[cloneMode] ?? '?'
+		const cloneModeName = CLONE_MODE_NAMES[cloneMode] ?? '?'
+		let cloneOffsetDisplay = ''
 		if (cloneMode === '1') {
 			const offsetPx = this.cloneOffsetPx?.[layerId]
 			if (offsetPx !== undefined) {
-				cloneModeDisplay += ` ${offsetPx >= 0 ? '+' : ''}${offsetPx}`
+				cloneOffsetDisplay = `${offsetPx >= 0 ? '+' : ''}${offsetPx}`
 			}
 		}
 		this.setVariableValues({
 			selLayerNum: `LAYER ${String(this.selectedLayer).padStart(2, '0')}`,
 			selLayerSrc: [srcLine1, srcLine2].filter(Boolean).join('\n'),
 			selLayerPos: pos ? `${pos.x},${pos.y}` : '...',
-			cloneModeDisplay,
+			cloneModeName,
+			cloneOffsetDisplay,
 		})
 	}
 
