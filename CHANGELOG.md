@@ -60,10 +60,27 @@ string` (2.2.1, both still accept the numbers this module uses) and two
   upstream PR.
 
 Verified via `node --check` on every changed file, a clean
-`companion-module-check` manifest validation, and a full
+`companion-module-check` manifest validation, a full
 `companion-module-build --dev` (real esbuild bundle through the actual
-entrypoint) with no errors. Not yet verified against a live Companion
-connection -- that's the next step.
+entrypoint) with no errors, and now confirmed live: connects, polls
+(`RLC`/`RRL`/`RRD`/`SCR`), and regenerates presets correctly against
+the real Companion 5.0.5 server.
+
+The first live attempt crashed Companion's own module-host harness
+with `TypeError: Promise.withResolvers is not a function` under
+Node.js v18.20.8, despite the manifest declaring `node26` (which this
+Companion install does have bundled, alongside node18/node22, in its
+`node-runtimes` directory). Root cause: Companion resolves a dev
+module's Node runtime from its own in-memory copy of that module's
+manifest, populated when it scans the developer-modules path -- not
+re-read on every connection start/restart. Toggling the connection
+re-used the stale pre-migration (`node18`) manifest data; a full
+Companion **application** restart forced a rescan and picked up the
+current manifest correctly.
+
+Also fixed: `sav_last_time` (an `advanced` feedback) was missing the
+new `affectedProperties: ['text']` -- without it Companion logged a
+"missing an array for affectedProperties" warning on every connect.
 
 ### Added
 - `sra` action (Source Apply): assigns a named source to one or more layers,

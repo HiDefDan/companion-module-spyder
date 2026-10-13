@@ -52,6 +52,7 @@ export function GetFeedbackDefinitions(self) {
 			name: 'Last Save Time',
 			description: 'Appends the HH:MM of the last successful Force Server Save to the button text. No override until the first save this connection.',
 			options: [],
+			affectedProperties: ['text'],
 			callback: () => {
 				const hhmm = self.getLastSaveTime()
 				return hhmm ? { text: `${self.label}\nSAVE\nlast:${hhmm}` } : {}
