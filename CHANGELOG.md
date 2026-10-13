@@ -645,3 +645,12 @@ Mirror a sensible "boolean trigger" on its own.
   now also shows `CloneMode=` and `CloneOffset(relative)=` -- it only
   showed X/Y/Width/Height before, which made this bug materially
   harder to diagnose from the logs than it should have been.
+
+**Re-tested live after the fix above: confirmed working, and more
+precise than Spyder Studio's own UI.** A real single-pixel clone
+nudge (offset 7711 -> 7712) now accumulates correctly instead of
+overwriting. Spyder Studio's own offset readout stayed at `0.1335`
+for that same move -- its UI rounds to 4 decimal places, which isn't
+fine-grained enough to show a single pixel changing on an 11552px
+pixelspace at all. This module's protocol-level readout doesn't have
+that problem.
