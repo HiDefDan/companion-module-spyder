@@ -541,6 +541,7 @@ export function compileActionDefinitions(self) {
 			callback: async () => {
 				self.targetFunction = 'pos'
 				self.refreshSelectedLayerDisplay()
+				self.checkFeedbacks('is_target_function')
 			},
 		},
 

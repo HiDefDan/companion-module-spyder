@@ -559,3 +559,12 @@ Mirror a sensible "boolean trigger" on its own.
 - `layer_select_display`'s `selLayerSrc` label font size 38 -> 33 --
   user found 38 (tuned on a different device/preview) wasn't safe on a
   Stream Deck XL, this module's primary target hardware.
+
+### Added (Layer Positioning)
+- `is_target_function` feedback + wiring into the `select_target_pos`
+  and `cycle_clone_mode` presets: highlights whichever one currently
+  matches `this.targetFunction` (same orange-bg highlight pattern as
+  `is_selected_key`). Closes a real gap found live-testing: there was
+  previously no visual indicator anywhere for whether the nudge keys
+  were currently armed for "Pos" or "Clone" -- both actions now also
+  call `checkFeedbacks('is_target_function')` after changing it.

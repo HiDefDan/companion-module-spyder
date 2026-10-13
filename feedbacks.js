@@ -89,6 +89,31 @@ export function GetFeedbackDefinitions(self) {
 			},
 		},
 
+		is_target_function: {
+			type: 'boolean',
+			name: 'Is Target Function',
+			description: 'Highlights the "Pos" or "Clone" key that currently matches this.targetFunction, so it\'s visible which one the nudge keys are currently armed for.',
+			defaultStyle: {
+				bgcolor: combineRgb(255, 159, 64),
+				color: combineRgb(0, 0, 0),
+			},
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Function',
+					id: 'function',
+					default: 'pos',
+					choices: [
+						{ id: 'pos', label: 'Pos' },
+						{ id: 'clone', label: 'Clone' },
+					],
+				},
+			],
+			callback: (fb) => {
+				return self.targetFunction === fb.options.function
+			},
+		},
+
 		inp_ok: {
 			type: 'boolean',
 			name: 'Script Active',

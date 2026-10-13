@@ -485,6 +485,7 @@ class SpyderInstance extends InstanceBase {
 		this.cloneMode[layerId] = String(next)
 		this.targetFunction = 'clone'
 		this.refreshSelectedLayerDisplay()
+		this.checkFeedbacks('is_target_function')
 	}
 
 	// 'HH:MM' (local time, Companion host's clock) of the last SAV that got

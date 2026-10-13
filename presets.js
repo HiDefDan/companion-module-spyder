@@ -512,7 +512,13 @@ export function GetPresetDefinitions(self) {
 					valign: 'center',
 				},
 			],
-			feedbacks: [],
+			feedbacks: [
+				{
+					feedbackId: 'is_target_function',
+					options: { function: 'pos' },
+					styleOverrides: [{ elementId: 'bg', elementProperty: 'color', override: { value: 0xff9f40, isExpression: false } }],
+				},
+			],
 			steps: [{ down: [{ actionId: 'select_target_pos', options: {} }], up: [] }],
 		},
 
@@ -533,7 +539,13 @@ export function GetPresetDefinitions(self) {
 					valign: 'center',
 				},
 			],
-			feedbacks: [],
+			feedbacks: [
+				{
+					feedbackId: 'is_target_function',
+					options: { function: 'clone' },
+					styleOverrides: [{ elementId: 'bg', elementProperty: 'color', override: { value: 0xff9f40, isExpression: false } }],
+				},
+			],
 			steps: [{ down: [{ actionId: 'cycle_clone_mode', options: {} }], up: [] }],
 		},
 	}
