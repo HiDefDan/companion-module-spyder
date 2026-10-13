@@ -14,8 +14,7 @@ API with equivalent behavior to before. Phase 2 converts the per-key
 presets to the new "layered" graphics preset format so they can set a
 font, which only exists on that path (see below).
 
-**Phase 2:** The per-key command-key presets (only -- the other four
-presets stay `type: 'simple'`, unchanged) are now `type: 'layered'`,
+**Phase 2:** The per-key command-key presets are now `type: 'layered'`,
 hand-authoring two graphics elements (`bg`, a box; `label`, a text
 element) instead of the flat `style` object. This is the only reason
 for Phase 2 existing: the plain `simple`/`CompanionButtonStyleProps`
@@ -36,6 +35,21 @@ code before the feedback is even created, which doesn't fail loudly;
 it just makes the feedback disappear from the button entirely. Found
 by reading Companion's actual bundled conversion function, not just
 the (more permissive-looking) `@companion-module/base` type.
+
+Per explicit request, mono font is now applied everywhere, not just
+the per-key presets: `force_server_save`, `cue_rev`, `cue_fwd`, and
+`rrl_refresh_both` are also now `type: 'layered'` with a `bg` box +
+mono `label` text element, matching their previous colors/text exactly
+-- no visual change besides the font. `force_server_save`'s
+`sav_last_time` feedback (`type: 'advanced'`) needed its own
+`styleOverrides` entry too, same as `is_selected_key` -- but unlike a
+boolean feedback's static override, an advanced feedback's actual
+shown text still comes from its callback at runtime; this entry's job
+is only declaring which element/property (`label`/`text`, matching
+`affectedProperties` in feedbacks.js) the callback is allowed to
+touch, which is enough to stop the feedback being dropped the same way
+`is_selected_key` was. This specific case (advanced feedback inside a
+layered preset) is reasoned from source, not yet confirmed live.
 
 Initially installed 2.2.1, which loaded on this Companion build with
 "Module Api version is too new/old: spyder 2.2.1" -- the base package's

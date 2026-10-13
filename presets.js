@@ -1,18 +1,43 @@
 export function GetPresetDefinitions(self) {
 	const presets = {
+		// All four of these are 'layered' (not 'simple') purely for the
+		// font -- same reason as the per-key presets below. Each is just a
+		// bg box + a mono label element; only force_server_save also has a
+		// feedback wired in.
 		force_server_save: {
-			type: 'simple',
+			type: 'layered',
 			name: 'Force Server Save',
-			style: {
-				text: `${self.label}\nSAVE`,
-				size: 'auto',
-				color: 0xffffff,
-				bgcolor: 0x660000,
-			},
+			elements: [
+				{ id: 'bg', type: 'box', color: 0x660000 },
+				{
+					id: 'label',
+					type: 'text',
+					text: `${self.label}\nSAVE`,
+					font: 'companion-mono',
+					fontsize: 100,
+					fontsizeAllowShrink: true,
+					color: 0xffffff,
+					halign: 'center',
+					valign: 'center',
+				},
+			],
 			feedbacks: [
 				{
 					feedbackId: 'sav_last_time',
 					options: {},
+					// sav_last_time is `type: 'advanced'`: the actual text shown
+					// (idle vs "...\nlast:HH:MM") comes from its callback at
+					// runtime, same as on a 'simple' preset/hand-added feedback.
+					// This styleOverrides entry's job is only to declare which
+					// element/property that callback is allowed to touch (must
+					// match `affectedProperties: ['text']` in feedbacks.js) so
+					// Companion attaches the feedback to the button at all --
+					// an empty/missing styleOverrides here drops the feedback
+					// entirely, same failure mode as is_selected_key below. The
+					// literal override value is a placeholder, not what's shown.
+					styleOverrides: [
+						{ elementId: 'label', elementProperty: 'text', override: { value: `${self.label}\nSAVE`, isExpression: false } },
+					],
 				},
 			],
 			steps: [
@@ -29,14 +54,22 @@ export function GetPresetDefinitions(self) {
 		},
 
 		cue_rev: {
-			type: 'simple',
+			type: 'layered',
 			name: 'Cue Back (REV)',
-			style: {
-				text: '<<<\nREV',
-				size: 'auto',
-				color: 0xffffff,
-				bgcolor: 0x330000,
-			},
+			elements: [
+				{ id: 'bg', type: 'box', color: 0x330000 },
+				{
+					id: 'label',
+					type: 'text',
+					text: '<<<\nREV',
+					font: 'companion-mono',
+					fontsize: 100,
+					fontsizeAllowShrink: true,
+					color: 0xffffff,
+					halign: 'center',
+					valign: 'center',
+				},
+			],
 			feedbacks: [],
 			steps: [
 				{
@@ -52,14 +85,22 @@ export function GetPresetDefinitions(self) {
 		},
 
 		cue_fwd: {
-			type: 'simple',
+			type: 'layered',
 			name: 'Cue Advance (FWD)',
-			style: {
-				text: '>>>\nFWD',
-				size: 'auto',
-				color: 0xffffff,
-				bgcolor: 0x003300,
-			},
+			elements: [
+				{ id: 'bg', type: 'box', color: 0x003300 },
+				{
+					id: 'label',
+					type: 'text',
+					text: '>>>\nFWD',
+					font: 'companion-mono',
+					fontsize: 100,
+					fontsizeAllowShrink: true,
+					color: 0xffffff,
+					halign: 'center',
+					valign: 'center',
+				},
+			],
 			feedbacks: [],
 			steps: [
 				{
@@ -75,14 +116,22 @@ export function GetPresetDefinitions(self) {
 		},
 
 		rrl_refresh_both: {
-			type: 'simple',
+			type: 'layered',
 			name: 'Refresh Sources & Command Keys Now',
-			style: {
-				text: 'Refresh\nSrc + Keys',
-				size: 'auto',
-				color: 0xffffff,
-				bgcolor: 0x000000,
-			},
+			elements: [
+				{ id: 'bg', type: 'box', color: 0x000000 },
+				{
+					id: 'label',
+					type: 'text',
+					text: 'Refresh\nSrc + Keys',
+					font: 'companion-mono',
+					fontsize: 100,
+					fontsizeAllowShrink: true,
+					color: 0xffffff,
+					halign: 'center',
+					valign: 'center',
+				},
+			],
 			feedbacks: [],
 			steps: [
 				{
