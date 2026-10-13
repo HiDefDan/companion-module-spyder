@@ -210,8 +210,10 @@ function describeResponseBody(cmds, resultCode, msg) {
 		}
 		case 'RLS':
 			return `source="${decodeURIComponent(parts[0] ?? '')}" (sourceId=${parts[1] ?? '?'})`
-		case 'RLK':
-			return `X=${parts[2] ?? '?'}, Y=${parts[3] ?? '?'}, Width=${parts[4] ?? '?'}, Height=${parts[5] ?? '?'}`
+		case 'RLK': {
+			const cloneModeName = CLONE_MODE_NAMES[parts[20]] ?? parts[20] ?? '?'
+			return `X=${parts[2] ?? '?'}, Y=${parts[3] ?? '?'}, Width=${parts[4] ?? '?'}, Height=${parts[5] ?? '?'}, CloneMode=${cloneModeName}, CloneOffset(relative)=${parts[21] ?? '?'}`
+		}
 		case 'RSF': {
 			const id = parseInt(parts[0])
 			const hz = FRAME_RATE_FAMILY_HZ[id]
@@ -433,17 +435,28 @@ class SpyderInstance extends InstanceBase {
 			if (dy !== 0 || this.cloneMode[layerId] !== '1') {
 				return
 			}
-			await this.queueCmd(`LCC ${layerId} 1 ${dx * step} 0`)
-			// Unlike earlier in this feature's build, this now IS tracked --
-			// RLK's Clone Offset field, converted via this.pixelspaces, gives
-			// a real pixel value (see the RLK case in the data handler), so
-			// cloneOffsetPx[layerId] is already real/polled by the time any
-			// nudging can happen (doNudge's clone branch only runs once
-			// this.cloneMode[layerId] is known, which means RLK has already
-			// answered at least once for this layer). Optimistic update here
-			// keeps the display responsive between RLK polls, same pattern as
-			// the KPS branch below.
-			this.cloneOffsetPx[layerId] = (this.cloneOffsetPx[layerId] ?? 0) + dx * step
+			// BUG FIXED LIVE (confirmed destructive): LCC's OffsetType=0 is
+			// ABSOLUTE, not relative like KPS's Position=1 -- sending dx*step
+			// as the offset value on every tick doesn't nudge, it OVERWRITES
+			// the real offset with that tiny fixed number every time,
+			// repeatedly, for as long as the key is held. Must compute and
+			// send the full new absolute value (current + delta), same as
+			// set_clone_absolute_x already does correctly. Refuses to nudge
+			// at all if the current offset isn't actually known yet (rather
+			// than defaulting to 0, which would silently clobber a real,
+			// unknown offset with a near-zero value -- confirmed live,
+			// "jumped back to 0 offset", the reason this comment exists).
+			const currentOffset = this.cloneOffsetPx[layerId]
+			if (currentOffset === undefined) {
+				this.log(
+					'warn',
+					`doNudge: clone offset for layer ${layerId} isn't known yet (waiting for RLK) -- not sending, to avoid overwriting an unknown real value`,
+				)
+				return
+			}
+			const newOffset = currentOffset + dx * step
+			await this.queueCmd(`LCC ${layerId} 1 ${newOffset} 0`)
+			this.cloneOffsetPx[layerId] = newOffset
 			if (layerId === this.selectedProtocolId()) {
 				this.refreshSelectedLayerDisplay()
 			}

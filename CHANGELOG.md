@@ -619,3 +619,29 @@ Mirror a sensible "boolean trigger" on its own.
   changing mode, rather than waiting for the next discovery tick, so
   landing on Offset shows its real (device-default) offset promptly
   instead of a stale/blank value.
+
+### Fixed -- destructive live bug on real hardware
+- `doNudge`'s clone-offset branch sent `LCC <layer> 1 <dx*step> 0` on
+  every tick -- but `LCC`'s `OffsetType=0` is **absolute**, not
+  relative like `KPS`'s `Position=1`. Every nudge tick wasn't adding
+  to the current offset, it was **overwriting** it with that tiny
+  fixed value (e.g. `1`, or `100` at a bigger step), repeatedly, for
+  as long as the key was held -- confirmed live (layer 14's log:
+  `LCC 14 1 100 0` sent identically, back to back, never
+  incrementing), reported by the user as the clone "jumping back to 0
+  offset." **Whatever real offset that layer had before this bug ran
+  is not recoverable from this module's own logs** -- the RLK log line
+  only showed X/Y/Width/Height at the time, not Clone Offset (also
+  fixed below), so if the pre-bug value mattered, it needs to come
+  from Spyder Studio or wherever else it might be recorded.
+  Fixed: now reads the current tracked `this.cloneOffsetPx[layerId]`,
+  computes `current + dx*step` as the real new absolute value (same
+  approach `set_clone_absolute_x` already used correctly), and sends
+  that. Also now refuses to nudge at all if the current offset isn't
+  actually known yet, rather than defaulting to 0 -- defaulting was
+  the same class of bug by another path (silently overwriting an
+  unknown real value with a near-zero one).
+- `describeResponseBody`'s `RLK` case (the human-readable log line)
+  now also shows `CloneMode=` and `CloneOffset(relative)=` -- it only
+  showed X/Y/Width/Height before, which made this bug materially
+  harder to diagnose from the logs than it should have been.
