@@ -10,9 +10,23 @@ not one per commit.
 
 ### Migration: @companion-module/base 1.14.1 -> 2.1.3 (API v2)
 Phase 1 of a two-phase upgrade -- gets the module running on the new major
-API with equivalent behavior to before. Phase 2 (separate, not done yet)
-converts the per-key presets to the new "layered" graphics preset format
-so they can set a font, which only exists on that path (see below).
+API with equivalent behavior to before. Phase 2 converts the per-key
+presets to the new "layered" graphics preset format so they can set a
+font, which only exists on that path (see below).
+
+**Phase 2:** The per-key command-key presets (only -- the other four
+presets stay `type: 'simple'`, unchanged) are now `type: 'layered'`,
+hand-authoring two graphics elements (`bg`, a box; `label`, a text
+element) instead of the flat `style` object. This is the only reason
+for Phase 2 existing: the plain `simple`/`CompanionButtonStyleProps`
+style has no font field at all, in 1.x or 2.x -- font only exists on
+this layered/graphics path. `label` sets `font: 'companion-mono'`
+directly (no config toggle -- a stated preference, not asked to be
+configurable). `is_selected_key`'s feedback entry on these presets
+uses the layered equivalent of the "needs its own style" fix from
+earlier: `styleOverrides: [{elementId: 'bg', elementProperty: 'color',
+override: 0xff9f40}]` instead of a flat `style` object, overriding only
+the background on selection -- text stays black/mono in both states.
 
 Initially installed 2.2.1, which loaded on this Companion build with
 "Module Api version is too new/old: spyder 2.2.1" -- the base package's

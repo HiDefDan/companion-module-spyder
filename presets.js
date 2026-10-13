@@ -116,26 +116,40 @@ export function GetPresetDefinitions(self) {
 		const presetId = `recall_key_${key.id}`
 		commandKeyIds.push(presetId)
 		presets[presetId] = {
-			type: 'simple',
+			// 'layered' instead of 'simple' -- the only way to get font
+			// control (a plain 'simple' CompanionButtonStyleProps.style has
+			// no font field at all). Hand-authoring elements/styleOverrides
+			// here instead of the flat style/style-on-feedback shape used
+			// elsewhere in this file.
+			type: 'layered',
 			name: label,
-			style: {
-				text: `$(spyder:cKey_rID_${key.id + 1})`,
-				size: 'auto',
-				color: 0x000000,
-				bgcolor: 0xffff80,
-			},
+			elements: [
+				{ id: 'bg', type: 'box', color: 0xffff80 },
+				{
+					id: 'label',
+					type: 'text',
+					text: `$(spyder:cKey_rID_${key.id + 1})`,
+					font: 'companion-mono',
+					fontsize: 100,
+					fontsizeAllowShrink: true,
+					color: 0x000000,
+					halign: 'center',
+					valign: 'center',
+				},
+			],
 			feedbacks: [
 				{
 					feedbackId: 'is_selected_key',
 					options: { registerId: String(key.id) },
-					// CompanionPresetFeedback.style: a boolean feedback's
-					// defaultStyle only auto-populates a button's style
-					// overrides when added through the Companion UI by hand --
-					// a feedback arriving pre-attached inside a preset needs
-					// its own copy here too, or it renders with no visible
-					// effect at all. Keep in sync with is_selected_key's
-					// defaultStyle in feedbacks.js.
-					style: { bgcolor: 0xff9f40, color: 0x000000 },
+					// Layered presets use styleOverrides (targeting specific
+					// element ids above) instead of the flat `style` the
+					// 'simple' presets elsewhere in this file use -- same
+					// underlying reason as those: a feedback attached inside
+					// a preset doesn't get is_selected_key's own defaultStyle
+					// (feedbacks.js) auto-applied, so it's declared explicitly
+					// here too. Only overrides the background -- text stays
+					// black/mono in both states.
+					styleOverrides: [{ elementId: 'bg', elementProperty: 'color', override: 0xff9f40 }],
 				},
 			],
 			steps: [
