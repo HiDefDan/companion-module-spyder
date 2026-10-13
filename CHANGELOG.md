@@ -310,3 +310,56 @@ new `affectedProperties: ['text']` -- without it Companion logged a
   needs its own `style` on that `CompanionPresetFeedback` entry, which
   the per-key presets weren't setting. Added it (same orange/black as
   the feedback's own `defaultStyle`, kept in sync by comment).
+
+### Layer Positioning: Select Target (Phase 1)
+First slice of absolute-pixel layer/clone positioning for multi-display
+composited pixelspaces, replacing the imprecise relative-coordinate clone
+placement previously used. This phase only covers choosing *which* layer
+is the current nudge/placement target and showing its live state -- the
+actual `KPS`/`LCC` nudge and clone-offset actions are a later phase.
+Protocol primitives (`KPS`, `LCC`, `RLK`, `RPD`, `RSF`) were verified
+live against the real frame with standalone out-of-band probe scripts
+(not part of this module) before any of this was written; notably,
+`LCC`'s Clone Offset can be written in real pixels but is always read
+back from `RLK` in a different, pixelspace-relative normalized unit --
+there is no way to read a clone's offset back in pixels, so a future
+phase handling clones has to track its own intended pixel offsets rather
+than trusting `RLK` for them. No such problem exists for plain layer
+position: `KPS`/`RLK` round-trip exactly in real pixels both ways.
+
+- `RLK` (Request Layer KeyFrame) is now a command this module can send
+  and parse (`spyder.js`'s response dispatch), extracting X/Y position
+  into a new `this.layerPos` map (keyed by protocol layer id). Only
+  queried for the currently-selected layer, not all of them -- unlike
+  the existing always-on `RLS` sweep, position is only displayed/acted
+  on for one layer at a time.
+- `select_next` / `select_prev` actions: cycle `this.selectedLayer`
+  (human-numbered, wraps at `1`/`this.layerCount`), each queuing a fresh
+  `RLK` for the newly-selected layer so the display doesn't show stale
+  position data from whatever was previously selected. Source doesn't
+  need a fresh query on selection change -- `this.layerSource` is
+  already kept current by the existing discovery-tick `RLS` polling.
+- The discovery tick (same slow, 60s-ish cadence `RLS`/`RRL` already use)
+  now also re-queries `RLK` for the currently-selected layer, as a
+  drift-correction safety net for moves made outside this module (Spyder
+  Studio, a script, ...) -- same reasoning as the existing RLS sweep.
+- `layer_select_display` preset: a live-updating readout of the
+  currently-selected layer -- layer number, its source name, and its
+  X,Y position, via 4 new variables (`selLayerNum`, `selLayerSrcLine1`,
+  `selLayerSrcLine2`, `selLayerPos`) refreshed by a new
+  `refreshSelectedLayerDisplay()` method. Built as 4 independent
+  `layered`-preset text elements with explicit draw bounds stacked in
+  4 horizontal bands, not one `\n`-joined text block -- a single block's
+  `fontsizeAllowShrink` scales uniformly off its tallest/widest line,
+  which would needlessly shrink the short layer-number line just to fit
+  the source-name wrap.
+- A scrolling/marquee source-name display (`unixNow()`/`strlen()`/
+  `substr()` expression trick in a text element) was built as an
+  isolated throwaway test preset and confirmed live to NOT animate --
+  Companion doesn't re-render a layered preset's expression-mode text
+  on a free-running timer the way it does for `blink()`-driven
+  visibility. Reverted; not part of this commit. Settled instead on a
+  static layout, word-wrapped by a new `wrapSourceName()` helper within
+  a confirmed-comfortable 4-lines-of-11-chars-per-line budget (checked
+  against all 24 of this venue's current source names -- the longest,
+  22 chars, wraps cleanly at the nearest word boundary on both lines).

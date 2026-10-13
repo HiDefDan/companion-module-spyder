@@ -135,6 +135,127 @@ export function GetPresetDefinitions(self) {
 				},
 			],
 		},
+
+		select_prev: {
+			type: 'layered',
+			name: 'Select Target Layer: Prev',
+			elements: [
+				{ id: 'bg', type: 'box', color: 0x330033 },
+				{
+					id: 'label',
+					type: 'text',
+					text: '<<<\nLAYER',
+					font: 'companion-mono',
+					fontsize: 100,
+					fontsizeAllowShrink: true,
+					color: 0xffffff,
+					halign: 'center',
+					valign: 'center',
+				},
+			],
+			feedbacks: [],
+			steps: [{ down: [{ actionId: 'select_prev', options: {} }], up: [] }],
+		},
+
+		select_next: {
+			type: 'layered',
+			name: 'Select Target Layer: Next',
+			elements: [
+				{ id: 'bg', type: 'box', color: 0x003333 },
+				{
+					id: 'label',
+					type: 'text',
+					text: 'LAYER\n>>>',
+					font: 'companion-mono',
+					fontsize: 100,
+					fontsizeAllowShrink: true,
+					color: 0xffffff,
+					halign: 'center',
+					valign: 'center',
+				},
+			],
+			feedbacks: [],
+			steps: [{ down: [{ actionId: 'select_next', options: {} }], up: [] }],
+		},
+
+		// Live display of the current "select target" -- layer number, its
+		// current source (word-wrapped by spyder.js's wrapSourceName, not
+		// scrolled -- see companion-expression-text-no-live-refresh memory,
+		// Companion doesn't re-render a time-expression text element live),
+		// and its last-known X,Y position. Four independent text elements
+		// (not one \n-joined element) so each line gets its own font
+		// size/weight/color and shrinks independently -- a single block would
+		// shrink the short layer-number line just to fit the source-name wrap.
+		layer_select_display: {
+			type: 'layered',
+			name: 'Selected Layer Display',
+			elements: [
+				{ id: 'bg', type: 'box', color: 0x202020 },
+				{
+					id: 'layerNum',
+					type: 'text',
+					x: 0,
+					y: 0,
+					width: 100,
+					height: 20,
+					text: '$(spyder:selLayerNum)',
+					font: 'companion-mono',
+					weight: 'bold',
+					fontsize: 100,
+					fontsizeAllowShrink: true,
+					color: 0xffffff,
+					halign: 'center',
+					valign: 'center',
+				},
+				{
+					id: 'srcLine1',
+					type: 'text',
+					x: 0,
+					y: 20,
+					width: 100,
+					height: 27,
+					text: '$(spyder:selLayerSrcLine1)',
+					font: 'companion-mono',
+					fontsize: 100,
+					fontsizeAllowShrink: true,
+					color: 0xffffff,
+					halign: 'center',
+					valign: 'center',
+				},
+				{
+					id: 'srcLine2',
+					type: 'text',
+					x: 0,
+					y: 47,
+					width: 100,
+					height: 27,
+					text: '$(spyder:selLayerSrcLine2)',
+					font: 'companion-mono',
+					fontsize: 100,
+					fontsizeAllowShrink: true,
+					color: 0xffffff,
+					halign: 'center',
+					valign: 'center',
+				},
+				{
+					id: 'pos',
+					type: 'text',
+					x: 0,
+					y: 74,
+					width: 100,
+					height: 26,
+					text: '$(spyder:selLayerPos)',
+					font: 'companion-mono',
+					fontsize: 85,
+					fontsizeAllowShrink: true,
+					color: 0xaaaaaa,
+					halign: 'center',
+					valign: 'center',
+				},
+			],
+			feedbacks: [],
+			steps: [{ down: [], up: [] }],
+		},
 	}
 
 	const commandKeyIds = []
@@ -217,6 +338,11 @@ export function GetPresetDefinitions(self) {
 		{ id: 'utility', name: 'Utility', definitions: ['force_server_save', 'rrl_refresh_both'] },
 		{ id: 'script_cue', name: 'Script Cue', definitions: ['cue_rev', 'cue_fwd'] },
 		{ id: 'command_keys', name: 'Command Keys', definitions: commandKeyIds },
+		{
+			id: 'layer_positioning',
+			name: 'Layer Positioning',
+			definitions: ['select_prev', 'select_next', 'layer_select_display'],
+		},
 	]
 
 	return { structure, presets }

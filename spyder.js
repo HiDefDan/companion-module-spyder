@@ -20,6 +20,37 @@ const DISCOVERY_INTERVAL_MS = 60000
 // out when that rebuild replaces the whole object wholesale.
 const STATIC_VARIABLE_DEFS = {
 	LastSave: { name: 'Last Force Server Save (HH:MM)' },
+	selLayerNum: { name: 'Selected Layer: Number' },
+	selLayerSrcLine1: { name: 'Selected Layer: Source (line 1)' },
+	selLayerSrcLine2: { name: 'Selected Layer: Source (line 2)' },
+	selLayerPos: { name: 'Selected Layer: X,Y Position' },
+}
+
+// Greedy two-line word-wrap for the display key's source-name lines (see
+// companion-expression-text-no-live-refresh memory -- no live scroll, so
+// static wrapping within the confirmed 4-lines/11-chars-per-line budget is
+// the real design). Checked against all 24 of this venue's current source
+// names -- the longest (22 chars, e.g. "MSV2-6 GUI, LTC, WANDS") wraps
+// cleanly at the word boundary nearest 11 chars on both lines. Any source
+// that doesn't fit this way just loses its tail words rather than
+// overflowing -- fontsizeAllowShrink on the preset's text elements is the
+// intended fallback for that case, not this function.
+function wrapSourceName(name, width = 11) {
+	const words = (name || '').split(' ').filter(Boolean)
+	let line1 = ''
+	let line2 = ''
+	let i = 0
+	for (; i < words.length; i++) {
+		const candidate = line1 ? `${line1} ${words[i]}` : words[i]
+		if (candidate.length > width) break
+		line1 = candidate
+	}
+	for (; i < words.length; i++) {
+		const candidate = line2 ? `${line2} ${words[i]}` : words[i]
+		if (candidate.length > width) break
+		line2 = candidate
+	}
+	return [line1, line2]
 }
 
 // From the manual's "Command processor responses" table (page 10) -- the
@@ -47,6 +78,7 @@ const COMMAND_NAMES = {
 	RRD: 'Request Register Detail',
 	SCR: 'Script Cue Request',
 	RLS: 'Request Layer Source',
+	RLK: 'Request Layer KeyFrame',
 	SRA: 'Source Apply',
 	ASC: 'Advance Script Cue',
 	BPR: 'Basic Preset Recall',
@@ -81,9 +113,9 @@ function describeCmd(cmd) {
 	return fullName ? `${fullName} (${readable})` : readable
 }
 
-// Named-field summary of a response body, for the five commands this
-// module sends itself (the ones with a structured payload beyond the
-// bare result code -- RLC/RLS/RRL/RRD/SCR). Everything else (one-shot
+// Named-field summary of a response body, for the commands this module
+// sends itself that have a structured payload beyond the bare result code
+// (RLC/RLS/RRL/RRD/SCR/RLK). Everything else (one-shot
 // action commands like SRA/ASC/...) has a bare '<Result Code>' response
 // per the manual, nothing more to show, so it falls back to the
 // %20-decoded body as-is. cmds is the request's tokens (already parsed
@@ -109,6 +141,8 @@ function describeResponseBody(cmds, resultCode, msg) {
 		}
 		case 'RLS':
 			return `source="${decodeURIComponent(parts[0] ?? '')}" (sourceId=${parts[1] ?? '?'})`
+		case 'RLK':
+			return `X=${parts[2] ?? '?'}, Y=${parts[3] ?? '?'}, Width=${parts[4] ?? '?'}, Height=${parts[5] ?? '?'}`
 		case 'RRL': {
 			const count = parts[0]
 			const items = []
@@ -252,6 +286,25 @@ class SpyderInstance extends InstanceBase {
 		return this.layerSource[String(Number(humanLayer) + 1)] ?? ''
 	}
 
+	// Protocol layer id (string) for the currently-selected human layer.
+	selectedProtocolId = () => String(this.selectedLayer + 1)
+
+	// Recomputes and pushes the 4 "selected layer" display variables from
+	// whatever's currently cached (this.layerPos, this.layerSource) -- does
+	// NOT itself query anything fresh. Called immediately on selection
+	// change (shows last-known data right away) and again whenever a fresh
+	// RLK/RLS response for the selected layer arrives.
+	refreshSelectedLayerDisplay = () => {
+		const pos = this.layerPos?.[this.selectedProtocolId()]
+		const [srcLine1, srcLine2] = wrapSourceName(this.getLayerSource(this.selectedLayer))
+		this.setVariableValues({
+			selLayerNum: `LAYER ${String(this.selectedLayer).padStart(2, '0')}`,
+			selLayerSrcLine1: srcLine1,
+			selLayerSrcLine2: srcLine2,
+			selLayerPos: pos ? `${pos.x},${pos.y}` : '...',
+		})
+	}
+
 	// 'HH:MM' (local time, Companion host's clock) of the last SAV that got
 	// a Success response, or undefined if there hasn't been one this
 	// connection -- see the 'SAV' case in the data handler.
@@ -292,6 +345,8 @@ class SpyderInstance extends InstanceBase {
 		this.nextCmd = []
 		this.status = {}
 		this.layerSource = {} // keyed by protocol layer id (human layer + 1)
+		this.layerPos = {} // keyed by protocol layer id -- {x, y}, only populated for layers an RLK has actually answered for (currently just the selected one)
+		this.selectedLayer = 1 // human-numbered -- "select target" for the layer-positioning display key / nudge actions
 		this.lastRecalled = undefined // {registerId, cue} -- set by recall_at_cue, read by is_selected_key/cue_fwd/cue_rev
 		this.watchedLayers = [] // populated once RLC answers -- see the 'RLC' case below
 		this.pollRateMs = Number(this.config.pollRateMs) || 2500
@@ -439,6 +494,23 @@ class SpyderInstance extends InstanceBase {
 							case 'RLS':
 								this.setLayerSource(cmds[1], decodeURIComponent(msg.slice(2).split(' ')[0] || ''))
 								break
+							case 'RLK': {
+								// Body (after the leading "0 " result code) is '<RelH> <RelV>
+								// <X> <Y> <Width> <Height> ...' per the manual -- X/Y are
+								// indices [2]/[3]. Only tracking position for now (the
+								// "select target" display key); the clone mode/offset fields
+								// later in this same response aren't read yet.
+								const body = msg.slice(2).split(' ')
+								const x = parseInt(body[2])
+								const y = parseInt(body[3])
+								if (!isNaN(x) && !isNaN(y)) {
+									this.layerPos[cmds[1]] = { x, y }
+									if (cmds[1] === this.selectedProtocolId()) {
+										this.refreshSelectedLayerDisplay()
+									}
+								}
+								break
+							}
 							case 'RLC': {
 								// Response includes the Spyder's 2 background layers; the
 								// manual says applications should subtract them, so this
@@ -527,6 +599,7 @@ class SpyderInstance extends InstanceBase {
 				this.setVariableDefinitions(this.variableDefs)
 				this.setVariableValues({ LastSave: '' })
 				this.variableValues = {}
+				this.refreshSelectedLayerDisplay() // placeholder values until the first poll's RLK answers
 				this.poll()
 				this.pollTimer = setInterval(async () => await this.poll(), this.pollRateMs)
 			})
@@ -575,6 +648,12 @@ class SpyderInstance extends InstanceBase {
 				for (const layer of this.watchedLayers) {
 					this.nextCmd.push(`RLS ${layer}`)
 				}
+				// Position-only drift check for whichever layer is currently the
+				// "select target" -- a safety net for moves made outside this
+				// module, same reasoning as the RLS sweep above. Not done for all
+				// 24 layers (unlike RLS), since position is only displayed/acted
+				// on for the one currently selected.
+				this.nextCmd.push(`RLK ${this.selectedProtocolId()}`)
 				this.nextCmd.push('RRL 6 -1')
 				const cmd = 'RRL 4 -1'
 				await this.queueCmd(cmd)

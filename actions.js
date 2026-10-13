@@ -427,5 +427,33 @@ export function compileActionDefinitions(self) {
 				await sendCmd(`DMT ${dur} ${dev}`)
 			},
 		},
+
+		// Layer positioning -- "select target" step. Cycles self.selectedLayer
+		// (human-numbered, 1..self.layerCount) and queues a fresh RLK for the
+		// newly-selected layer so the display key's position line doesn't show
+		// stale data from whatever was previously selected. Source doesn't need
+		// a fresh query -- self.layerSource is already kept current by the
+		// existing discovery-tick RLS polling (spyder.js poll()).
+		'select_next': {
+			name: 'Select Target Layer: Next',
+			options: [],
+			callback: async () => {
+				const max = self.layerCount || 24
+				self.selectedLayer = self.selectedLayer >= max ? 1 : self.selectedLayer + 1
+				self.refreshSelectedLayerDisplay()
+				await sendCmd(`RLK ${self.selectedLayer + 1}`)
+			},
+		},
+
+		'select_prev': {
+			name: 'Select Target Layer: Previous',
+			options: [],
+			callback: async () => {
+				const max = self.layerCount || 24
+				self.selectedLayer = self.selectedLayer <= 1 ? max : self.selectedLayer - 1
+				self.refreshSelectedLayerDisplay()
+				await sendCmd(`RLK ${self.selectedLayer + 1}`)
+			},
+		},
 	}
 }
