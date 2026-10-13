@@ -24,7 +24,7 @@ const STATIC_VARIABLE_DEFS = {
 	selLayerSrc: { name: 'Selected Layer: Source' },
 	selLayerPos: { name: 'Selected Layer: X,Y Position' },
 	nudgeStep: { name: 'Nudge Step Size (px)' },
-	cloneModeDisplay: { name: 'Selected Layer: Clone Mode (Off / Mirror / Offset)' },
+	cloneModeDisplay: { name: 'Selected Layer: Clone Mode (Off / Mirror / Offset, + px offset if Offset)' },
 }
 
 // LCC's own <Mode> values/names, straight from the manual.
@@ -146,6 +146,8 @@ const COMMAND_NAMES = {
 	RLK: 'Request Layer KeyFrame',
 	RSF: 'Request System FrameRate',
 	KPS: 'Layer Position Change',
+	RPD: 'Request pixelspace Definitions',
+	LCC: 'Layer Clone Control',
 	SRA: 'Source Apply',
 	ASC: 'Advance Script Cue',
 	BPR: 'Basic Preset Recall',
@@ -182,7 +184,7 @@ function describeCmd(cmd) {
 
 // Named-field summary of a response body, for the commands this module
 // sends itself that have a structured payload beyond the bare result code
-// (RLC/RLS/RRL/RRD/SCR/RLK/RSF). Everything else (one-shot
+// (RLC/RLS/RRL/RRD/SCR/RLK/RSF/RPD). Everything else (one-shot
 // action commands like SRA/ASC/...) has a bare '<Result Code>' response
 // per the manual, nothing more to show, so it falls back to the
 // %20-decoded body as-is. cmds is the request's tokens (already parsed
@@ -214,6 +216,10 @@ function describeResponseBody(cmds, resultCode, msg) {
 			const id = parseInt(parts[0])
 			const hz = FRAME_RATE_FAMILY_HZ[id]
 			return hz !== undefined ? `frameRateId=${id} (${hz}Hz family)` : `frameRateId=${id} (unknown)`
+		}
+		case 'RPD': {
+			const count = parseInt(parts[0])
+			return isNaN(count) ? humanizeArgs(msg) : `${count} pixelspace(s) defined`
 		}
 		case 'RRL': {
 			const count = parts[0]
@@ -377,12 +383,20 @@ class SpyderInstance extends InstanceBase {
 		// preset, and short source names that only need 1 line don't carry a
 		// dangling blank second line.
 		const [srcLine1, srcLine2] = wrapSourceName(this.getLayerSource(this.selectedLayer))
-		const cloneMode = this.cloneMode?.[this.selectedProtocolId()]
+		const layerId = this.selectedProtocolId()
+		const cloneMode = this.cloneMode?.[layerId]
+		let cloneModeDisplay = CLONE_MODE_NAMES[cloneMode] ?? '?'
+		if (cloneMode === '1') {
+			const offsetPx = this.cloneOffsetPx?.[layerId]
+			if (offsetPx !== undefined) {
+				cloneModeDisplay += ` ${offsetPx >= 0 ? '+' : ''}${offsetPx}`
+			}
+		}
 		this.setVariableValues({
 			selLayerNum: `LAYER ${String(this.selectedLayer).padStart(2, '0')}`,
 			selLayerSrc: [srcLine1, srcLine2].filter(Boolean).join('\n'),
 			selLayerPos: pos ? `${pos.x},${pos.y}` : '...',
-			cloneModeDisplay: CLONE_MODE_NAMES[cloneMode] ?? '?',
+			cloneModeDisplay,
 		})
 	}
 
@@ -420,10 +434,19 @@ class SpyderInstance extends InstanceBase {
 				return
 			}
 			await this.queueCmd(`LCC ${layerId} 1 ${dx * step} 0`)
-			// No position tracking here, unlike the KPS branch below -- LCC's
-			// Clone Offset can't be read back in pixels (see
-			// spyder-module-layer-positioning memory), so there's no
-			// trustworthy running value to display.
+			// Unlike earlier in this feature's build, this now IS tracked --
+			// RLK's Clone Offset field, converted via this.pixelspaces, gives
+			// a real pixel value (see the RLK case in the data handler), so
+			// cloneOffsetPx[layerId] is already real/polled by the time any
+			// nudging can happen (doNudge's clone branch only runs once
+			// this.cloneMode[layerId] is known, which means RLK has already
+			// answered at least once for this layer). Optimistic update here
+			// keeps the display responsive between RLK polls, same pattern as
+			// the KPS branch below.
+			this.cloneOffsetPx[layerId] = (this.cloneOffsetPx[layerId] ?? 0) + dx * step
+			if (layerId === this.selectedProtocolId()) {
+				this.refreshSelectedLayerDisplay()
+			}
 			return
 		}
 
@@ -495,9 +518,13 @@ class SpyderInstance extends InstanceBase {
 		// <Offset> is optional on LCC -- omitting it reuses whatever offset
 		// value is already stored on the layer's own KeyFrame (confirmed in
 		// the manual), so switching modes never needs to know/compute a
-		// pixel value first.
+		// pixel value first. That also means we don't know what that reused
+		// offset actually is in pixels until a fresh RLK answers -- queued
+		// right after, rather than waiting for the next discovery tick, so
+		// landing on Offset mode shows its real offset promptly.
 		await this.queueCmd(`LCC ${layerId} ${next} 0`)
 		this.cloneMode[layerId] = String(next)
+		await this.queueCmd(`RLK ${layerId}`)
 		this.refreshSelectedLayerDisplay()
 	}
 
@@ -523,6 +550,7 @@ class SpyderInstance extends InstanceBase {
 		const offset = targetX - pos.x
 		await this.queueCmd(`LCC ${layerId} 1 ${offset} 0`)
 		this.cloneMode[layerId] = '1'
+		this.cloneOffsetPx[layerId] = offset // exact, since we computed and sent it ourselves
 		this.targetFunction = 'clone'
 		this.cloneArmed = true
 		this.refreshSelectedLayerDisplay()
@@ -578,6 +606,8 @@ class SpyderInstance extends InstanceBase {
 		this.layerSource = {} // keyed by protocol layer id (human layer + 1)
 		this.layerPos = {} // keyed by protocol layer id -- {x, y}, only populated for layers an RLK has actually answered for (currently just the selected one), kept in sync optimistically by doNudge's own KPS writes
 		this.cloneMode = {} // keyed by protocol layer id -- real polled LCC Mode (0/1/2), from RLK's Clone Mode field. undefined until that layer's first RLK answers -- cycleCloneMode refuses to guess/cycle from an unknown state
+		this.cloneOffsetPx = {} // keyed by protocol layer id -- real polled Clone Offset converted to pixels (RLK's Clone Offset field * this.pixelspaces lookup), kept in sync optimistically by doNudge's own LCC writes and set_clone_absolute_x
+		this.pixelspaces = {} // keyed by Pixelspace ID -- {name, x, y, width, height}, populated by RPD at connect
 		this.targetFunction = 'pos' // 'pos' | 'clone' -- what the nudge keys currently act on, see doNudge
 		this.cloneArmed = false // see cycleCloneMode -- first press after a function/layer switch only arms, doesn't cycle
 		this.selectedLayer = 1 // human-numbered -- "select target" for the layer-positioning display key / nudge actions
@@ -733,26 +763,61 @@ class SpyderInstance extends InstanceBase {
 								break
 							case 'RLK': {
 								// Body (after the leading "0 " result code) is '<RelH> <RelV>
-								// <X> <Y> <Width> <Height> ... <Clone Mode> <Clone Offset> ...'
-								// per the manual -- X/Y are indices [2]/[3], Clone Mode is [20]
-								// (Clone Offset [21] still isn't read -- see
-								// spyder-module-layer-positioning memory on why it can't be
-								// trusted in pixels anyway).
+								// <X> <Y> <Width> <Height> ... <Clone Mode> <Clone Offset> ...
+								// <HPan> <VPan> <Pixelspace ID> ...' per the manual -- X/Y are
+								// indices [2]/[3], Clone Mode [20], Clone Offset [21], Pixelspace
+								// ID [31]. Clone Offset is reported in a pixelspace-relative
+								// normalized unit, not pixels (confirmed live) -- converted here
+								// using the same formula confirmed against a real absolute-pixel
+								// write (relative = 2*px/pixelspaceWidth), via this.pixelspaces
+								// (populated by RPD at connect). Needs that pixelspace's width to
+								// be known; silently leaves cloneOffsetPx unset otherwise rather
+								// than compute against a wrong/missing width.
 								const body = msg.slice(2).split(' ')
 								const x = parseInt(body[2])
 								const y = parseInt(body[3])
 								const cloneMode = body[20]
+								const cloneOffsetRelative = parseFloat(body[21])
+								const pixelspaceId = body[31]
 								if (!isNaN(x) && !isNaN(y)) {
 									this.layerPos[cmds[1]] = { x, y }
 								}
 								if (cloneMode !== undefined) {
 									this.cloneMode[cmds[1]] = cloneMode
 								}
+								const pixelspace = this.pixelspaces[pixelspaceId]
+								if (!isNaN(cloneOffsetRelative) && pixelspace) {
+									this.cloneOffsetPx[cmds[1]] = Math.round((cloneOffsetRelative * pixelspace.width) / 2)
+								}
 								if (cmds[1] === this.selectedProtocolId()) {
 									this.refreshSelectedLayerDisplay()
 								}
 								break
 							}
+							case 'RPD': {
+								// '<Count> [<ID> <Name> <Current Background> <Next Background>
+								// <X> <Y> <Width> <Height> <RenewalGroup ID>]...' -- 9 fields per
+								// pixelspace entry. Only width (needed for the Clone Offset
+								// conversion above) is actually used right now; the rest is
+								// cached too since it's free and may be useful later (bounds
+								// checking, naming, etc).
+								const body = msg.slice(2).split(' ')
+								const count = parseInt(body[0])
+								let i = 1
+								for (let n = 0; n < count && i < body.length; n++) {
+									const [id, name, , , x, y, width, height] = body.slice(i, i + 9)
+									i += 9
+									this.pixelspaces[id] = {
+										name: decodeURIComponent(name ?? ''),
+										x: parseInt(x),
+										y: parseInt(y),
+										width: parseInt(width),
+										height: parseInt(height),
+									}
+								}
+								break
+							}
+
 							case 'RSF': {
 								const id = parseInt(msg.slice(2).split(' ')[0])
 								const hz = FRAME_RATE_FAMILY_HZ[id]
@@ -842,6 +907,11 @@ class SpyderInstance extends InstanceBase {
 				this.setStatus(InstanceStatus.Ok, 'UDP Listening')
 				// send a simple query (how many layers)
 				await this.queueCmd('RLC')
+				// Pixelspace definitions essentially never change mid-show (unlike
+				// RSF, which the user explicitly wanted periodic + manual-refresh
+				// coverage for) -- queried once here, needed before any RLK
+				// response's Clone Offset can be converted to pixels.
+				await this.queueCmd('RPD')
 				this.reg = {}
 				this.script2reg = {}
 				this.sources = {} // keyed by source register id; feeds src_<N> variables and the sra action's dropdown

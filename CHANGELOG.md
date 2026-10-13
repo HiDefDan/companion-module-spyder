@@ -595,3 +595,27 @@ Mirror a sensible "boolean trigger" on its own.
   has no absolute mode for clones at all -- this module's own LCC
   absolute-pixel write (already confirmed accepted live) closes that
   gap with exact pixel precision instead.
+
+### Added (Layer Positioning)
+- Live-tracked clone offset in pixels, shown on the Clone button itself
+  (`cloneModeDisplay` now reads e.g. "Offset +150", not just "Offset").
+  Reconsidered an earlier assumption that this couldn't be done: `RLK`'s
+  Clone Offset field *is* already being parsed in principle (just not
+  used yet), and the exact pixelspace-relative-to-pixels conversion was
+  already validated earlier this session (`relative = 2*px /
+  pixelspaceWidth`, confirmed against a real 10px write) -- the only
+  missing piece was the pixelspace's own width, now wired in via `RPD`
+  (Request pixelspace Definitions), queried once at connect (pixelspace
+  layout essentially never changes mid-show, unlike `RSF`) and cached
+  in `this.pixelspaces` (keyed by Pixelspace ID, `{name, x, y, width,
+  height}`). `RLK`'s response parsing now also reads Clone Offset
+  (body index 21) and Pixelspace ID (body index 31), converting to a
+  real pixel value via that cache into `this.cloneOffsetPx`. Kept
+  responsive between polls the same way `layerPos` already is:
+  optimistically incremented/decremented by `doNudge`'s clone branch on
+  every L/R nudge, and set exactly by `set_clone_absolute_x` (since
+  that action computes and sends the value itself, no estimation
+  needed). `cycleCloneMode` now also re-queries `RLK` immediately after
+  changing mode, rather than waiting for the next discovery tick, so
+  landing on Offset shows its real (device-default) offset promptly
+  instead of a stale/blank value.
