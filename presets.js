@@ -129,6 +129,14 @@ export function GetPresetDefinitions(self) {
 				{
 					feedbackId: 'is_selected_key',
 					options: { registerId: String(key.id) },
+					// CompanionPresetFeedback.style: a boolean feedback's
+					// defaultStyle only auto-populates a button's style
+					// overrides when added through the Companion UI by hand --
+					// a feedback arriving pre-attached inside a preset needs
+					// its own copy here too, or it renders with no visible
+					// effect at all. Keep in sync with is_selected_key's
+					// defaultStyle in feedbacks.js.
+					style: { bgcolor: 0xff9f40, color: 0x000000 },
 				},
 			],
 			steps: [

@@ -174,8 +174,15 @@ not one per commit.
   override at all: leaving it unset lets the selected state inherit
   the idle style's `size: 'auto'` instead of forcing a fixed point
   size (which otherwise rendered noticeably smaller than idle text).
-- What actually broke "selected" highlighting not appearing at all
-  wasn't a module bug either: the feedback's "Command Key" option
-  didn't match the Command Key the button's own "Recall Command Key
-  at Cue" action targets. Worth checking both match if a button's
-  highlight never seems to fire.
+- One instance of "selected" highlighting not appearing turned out to
+  be a Command Key mismatch between the feedback and the button's own
+  "Recall Command Key at Cue" action, not a module bug -- worth
+  checking both match if a button's highlight never seems to fire.
+- Found the real bug behind the rest: even a freshly-dragged per-key
+  preset's `is_selected_key` feedback rendered with no visible effect
+  at all. A boolean feedback's `defaultStyle` only auto-populates a
+  button's style overrides when the feedback is added through the
+  Companion UI by hand -- one arriving pre-attached inside a preset
+  needs its own `style` on that `CompanionPresetFeedback` entry, which
+  the per-key presets weren't setting. Added it (same orange/black as
+  the feedback's own `defaultStyle`, kept in sync by comment).
