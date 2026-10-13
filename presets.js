@@ -148,8 +148,13 @@ export function GetPresetDefinitions(self) {
 					// a preset doesn't get is_selected_key's own defaultStyle
 					// (feedbacks.js) auto-applied, so it's declared explicitly
 					// here too. Only overrides the background -- text stays
-					// black/mono in both states.
-					styleOverrides: [{ elementId: 'bg', elementProperty: 'color', override: 0xff9f40 }],
+					// black/mono in both states. Unlike most of this codebase's
+					// CompanionGraphicsElementValue fields, a plain (unwrapped)
+					// override value here gets silently dropped -- Companion's
+					// own preset-conversion code filters styleOverrides entries
+					// on an isExpression check before anything else runs, so the
+					// full {value, isExpression} wrapper is required.
+					styleOverrides: [{ elementId: 'bg', elementProperty: 'color', override: { value: 0xff9f40, isExpression: false } }],
 				},
 			],
 			steps: [

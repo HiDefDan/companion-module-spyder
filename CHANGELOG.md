@@ -25,8 +25,17 @@ directly (no config toggle -- a stated preference, not asked to be
 configurable). `is_selected_key`'s feedback entry on these presets
 uses the layered equivalent of the "needs its own style" fix from
 earlier: `styleOverrides: [{elementId: 'bg', elementProperty: 'color',
-override: 0xff9f40}]` instead of a flat `style` object, overriding only
-the background on selection -- text stays black/mono in both states.
+override: {value: 0xff9f40, isExpression: false}}]` instead of a flat
+`style` object, overriding only the background on selection -- text
+stays black/mono in both states. The `override` value must be the full
+`{value, isExpression}` wrapper, not a plain value (unlike everywhere
+else in this codebase that takes a `CompanionGraphicsElementValue`,
+e.g. every field in this preset's own `elements` above) -- a plain
+value here is silently dropped by Companion's own preset-conversion
+code before the feedback is even created, which doesn't fail loudly;
+it just makes the feedback disappear from the button entirely. Found
+by reading Companion's actual bundled conversion function, not just
+the (more permissive-looking) `@companion-module/base` type.
 
 Initially installed 2.2.1, which loaded on this Companion build with
 "Module Api version is too new/old: spyder 2.2.1" -- the base package's
