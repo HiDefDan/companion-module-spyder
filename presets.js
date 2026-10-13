@@ -209,10 +209,12 @@ export function GetPresetDefinitions(self) {
 				},
 				{
 					// Position/size and font size per the user's own live-tuned
-					// values in Companion's editor -- companion-mono @ 38 (no
-					// shrink) comfortably fits the confirmed 11-chars-per-line
-					// budget within this box. Holds both of wrapSourceName's
-					// lines (joined by \n into the one selLayerSrc variable in
+					// values in Companion's editor -- companion-mono @ 33 (no
+					// shrink) is the confirmed-safe size on a Stream Deck XL
+					// (38 was tuned on a different device/preview and wasn't
+					// safe on XL) for the confirmed 11-chars-per-line budget
+					// within this box. Holds both of wrapSourceName's lines
+					// (joined by \n into the one selLayerSrc variable in
 					// spyder.js) rather than 2 separate elements/variables.
 					id: 'label',
 					type: 'text',
@@ -222,7 +224,7 @@ export function GetPresetDefinitions(self) {
 					height: 50,
 					text: '$(spyder:selLayerSrc)',
 					font: 'companion-mono',
-					fontsize: 38,
+					fontsize: 33,
 					fontsizeAllowShrink: false,
 					color: 0xffffff,
 					halign: 'left',

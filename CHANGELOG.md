@@ -554,3 +554,8 @@ Mirror a sensible "boolean trigger" on its own.
 - Not yet done: visually dimming the irrelevant nudge keys (up/down/
   diagonals) while in Offset mode, rather than letting them silently
   no-op -- floated as a follow-up, not yet requested/built.
+
+### Fixed
+- `layer_select_display`'s `selLayerSrc` label font size 38 -> 33 --
+  user found 38 (tuned on a different device/preview) wasn't safe on a
+  Stream Deck XL, this module's primary target hardware.
