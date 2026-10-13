@@ -141,3 +141,11 @@ not one per commit.
 - `sra`'s "Layer(s)" field has a regex rejecting values that could never
   be a real layer (zero, negative, leading zeros), on top of the live
   `RLC` bounds check above.
+
+### Fixed
+- `is_selected_key`'s `defaultStyle` now includes `size: 'auto'`,
+  matching the per-key presets it's pre-wired onto. Without it,
+  Companion's per-feedback style-override panel couldn't resolve a
+  numeric text size from the preset's `'auto'` size (showing `NaN` in
+  that field), and applying it blanked the button's background/text
+  once the feedback went true.
