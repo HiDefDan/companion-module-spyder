@@ -489,3 +489,12 @@ phase.
   every step size. `this.frameRateHz`/`RSF` caching is unaffected and
   still runs (connect/periodic/"Refresh Data") -- just no longer
   consumed by nudge timing.
+
+### Changed (Layer Positioning)
+- `layer_select_display`'s source-name display, per the user's own
+  live-tuned values: merged `selLayerSrcLine1`/`selLayerSrcLine2` into
+  one `selLayerSrc` variable (`wrapSourceName`'s two lines joined by
+  `\n`, so a short name that only needs one line doesn't carry a
+  dangling blank second line) and one preset text element (`label`,
+  `x:5 y:25 w:90 h:50`, `companion-mono` size 38, no shrink) instead of
+  two stacked elements each with their own size/shrink behavior.

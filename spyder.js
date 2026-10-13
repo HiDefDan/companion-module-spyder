@@ -21,8 +21,7 @@ const DISCOVERY_INTERVAL_MS = 60000
 const STATIC_VARIABLE_DEFS = {
 	LastSave: { name: 'Last Force Server Save (HH:MM)' },
 	selLayerNum: { name: 'Selected Layer: Number' },
-	selLayerSrcLine1: { name: 'Selected Layer: Source (line 1)' },
-	selLayerSrcLine2: { name: 'Selected Layer: Source (line 2)' },
+	selLayerSrc: { name: 'Selected Layer: Source' },
 	selLayerPos: { name: 'Selected Layer: X,Y Position' },
 	nudgeStep: { name: 'Nudge Step Size (px)' },
 }
@@ -354,18 +353,22 @@ class SpyderInstance extends InstanceBase {
 	// Protocol layer id (string) for the currently-selected human layer.
 	selectedProtocolId = () => String(this.selectedLayer + 1)
 
-	// Recomputes and pushes the 4 "selected layer" display variables from
+	// Recomputes and pushes the 3 "selected layer" display variables from
 	// whatever's currently cached (this.layerPos, this.layerSource) -- does
 	// NOT itself query anything fresh. Called immediately on selection
 	// change (shows last-known data right away) and again whenever a fresh
 	// RLK/RLS response for the selected layer arrives.
 	refreshSelectedLayerDisplay = () => {
 		const pos = this.layerPos?.[this.selectedProtocolId()]
+		// wrapSourceName's 2 lines are joined into this one variable's value
+		// (a single preset text element, tall enough for 2 lines, displays
+		// it) rather than kept as 2 separate variables/elements -- simpler
+		// preset, and short source names that only need 1 line don't carry a
+		// dangling blank second line.
 		const [srcLine1, srcLine2] = wrapSourceName(this.getLayerSource(this.selectedLayer))
 		this.setVariableValues({
 			selLayerNum: `LAYER ${String(this.selectedLayer).padStart(2, '0')}`,
-			selLayerSrcLine1: srcLine1,
-			selLayerSrcLine2: srcLine2,
+			selLayerSrc: [srcLine1, srcLine2].filter(Boolean).join('\n'),
 			selLayerPos: pos ? `${pos.x},${pos.y}` : '...',
 		})
 	}

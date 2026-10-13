@@ -208,31 +208,22 @@ export function GetPresetDefinitions(self) {
 					valign: 'center',
 				},
 				{
-					id: 'srcLine1',
+					// Position/size and font size per the user's own live-tuned
+					// values in Companion's editor -- companion-mono @ 38 (no
+					// shrink) comfortably fits the confirmed 11-chars-per-line
+					// budget within this box. Holds both of wrapSourceName's
+					// lines (joined by \n into the one selLayerSrc variable in
+					// spyder.js) rather than 2 separate elements/variables.
+					id: 'label',
 					type: 'text',
-					x: 0,
-					y: 20,
-					width: 100,
-					height: 27,
-					text: '$(spyder:selLayerSrcLine1)',
+					x: 5,
+					y: 25,
+					width: 90,
+					height: 50,
+					text: '$(spyder:selLayerSrc)',
 					font: 'companion-mono',
-					fontsize: 100,
-					fontsizeAllowShrink: true,
-					color: 0xffffff,
-					halign: 'center',
-					valign: 'center',
-				},
-				{
-					id: 'srcLine2',
-					type: 'text',
-					x: 0,
-					y: 47,
-					width: 100,
-					height: 27,
-					text: '$(spyder:selLayerSrcLine2)',
-					font: 'companion-mono',
-					fontsize: 100,
-					fontsizeAllowShrink: true,
+					fontsize: 38,
+					fontsizeAllowShrink: false,
 					color: 0xffffff,
 					halign: 'center',
 					valign: 'center',
