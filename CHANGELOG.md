@@ -377,3 +377,18 @@ position: `KPS`/`RLK` round-trip exactly in real pixels both ways.
   RLS data actually arrived. `setLayerSource` now also calls
   `refreshSelectedLayerDisplay()` when the layer it just updated is the
   currently-selected one, same as the existing `RLK` handler does.
+- That fix alone didn't help -- live-tested again post-restart and
+  found a second, pre-existing bug underneath it: the `'listening'`
+  handler sent `RLC` and called `this.poll()` immediately afterwards,
+  without waiting for `RLC`'s response (`queueCmd` only awaits the
+  send). `this.watchedLayers` is only populated inside the async `RLC`
+  response handler, so that very first `poll()` call always ran with
+  `watchedLayers` still `[]`, silently skipping the entire `RLS`
+  discovery sweep for the whole first ~60s discovery cycle after any
+  connect/restart -- not just for the newly-selected-layer display, for
+  every layer's source. (`RLK` appeared to work "instantly" in the
+  first debugging pass only because it doesn't depend on
+  `watchedLayers`.) Removed the immediate `this.poll()` call; the
+  `pollTimer` interval's first firing is now what runs the real first
+  poll, by which point `RLC`'s response has reliably already landed
+  even at the fastest allowed poll rate (500ms) on a LAN.

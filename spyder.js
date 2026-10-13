@@ -603,7 +603,16 @@ class SpyderInstance extends InstanceBase {
 				this.setVariableValues({ LastSave: '' })
 				this.variableValues = {}
 				this.refreshSelectedLayerDisplay() // placeholder values until the first poll's RLK answers
-				this.poll()
+				// No immediate this.poll() call here -- RLC was just sent, not
+				// answered yet (queueCmd only awaits the send), so watchedLayers
+				// (set inside the async RLC response handler) is still the empty
+				// array start() initialized it to. A poll() run this early would
+				// see that and silently skip the entire RLS discovery sweep for
+				// the whole first ~60s cycle, same bug that made source data take
+				// a full connect-plus-discovery-interval to show up on the
+				// layer-select display key. Let the interval timer's first firing
+				// be the real first poll() -- even the fastest allowed poll rate
+				// (500ms) is comfortably longer than an RLC round-trip on a LAN.
 				this.pollTimer = setInterval(async () => await this.poll(), this.pollRateMs)
 			})
 		}
