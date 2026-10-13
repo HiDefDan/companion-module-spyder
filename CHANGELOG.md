@@ -77,12 +77,11 @@ not one per commit.
   placed buttons, though: the preset's text is the live
   `cKey_rID_<RegisterID>` variable, not a literal string baked in at
   drop time.
-- Per-key presets now carry a small baked-in `png64` bezel/indicator
-  graphic (transparent except for a raised keycap-style double border
-  and a thin phosphor-green strip), nodding to the nested-square
-  keycap look in the ST420 Shotbox manual's keyboard layout diagram
-  without reusing anything from it -- generated as SVG and rendered to
-  PNG for this module.
+- Per-key preset idle style is now yellow bg (`0xffff80`) / black text,
+  matching colors pulled from the user's own hand-styled button export
+  (also used for `is_selected_key`'s orange/black, above). An earlier
+  attempt also baked in a decorative keycap/LCD-bezel `png64` graphic;
+  removed per feedback -- didn't earn its place.
 
 ### Changed
 - All actions now go through `cueCmd` instead of calling `sendCmd`
@@ -165,3 +164,18 @@ not one per commit.
   exported Companion config of a button the user hand-styled -- the
   prior red/white combo (chosen without that reference) looked wrong
   against this module's generated preset/base styling.
+- Removed `defaultStyle.size` entirely rather than fixing its value a
+  third time. The underlying NaN/blanked-button symptom this chased
+  turned out to be a stale per-button style override frozen on one
+  test button since an earlier module version -- `defaultStyle` only
+  seeds a feedback instance's style the moment it's first added to a
+  button, so none of these `defaultStyle` edits were ever reaching
+  that already-placed instance. A fresh instance doesn't need a size
+  override at all: leaving it unset lets the selected state inherit
+  the idle style's `size: 'auto'` instead of forcing a fixed point
+  size (which otherwise rendered noticeably smaller than idle text).
+- What actually broke "selected" highlighting not appearing at all
+  wasn't a module bug either: the feedback's "Command Key" option
+  didn't match the Command Key the button's own "Recall Command Key
+  at Cue" action targets. Worth checking both match if a button's
+  highlight never seems to fire.
