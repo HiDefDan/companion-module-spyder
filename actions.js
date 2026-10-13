@@ -530,5 +530,26 @@ export function compileActionDefinitions(self) {
 				self.stopNudge(action.options.direction)
 			},
 		},
+
+		// "Pos" vs "Clone" -- which hardware thing the nudge keys currently
+		// act on. Pos never touches the device itself (just a UI-state
+		// switch); Clone's own cycle action (below) is what actually sends
+		// anything, since it directly maps to LCC's own Mode enum.
+		'select_target_pos': {
+			name: 'Target Function: Layer Position',
+			options: [],
+			callback: async () => {
+				self.targetFunction = 'pos'
+				self.refreshSelectedLayerDisplay()
+			},
+		},
+
+		'cycle_clone_mode': {
+			name: 'Target Function: Cycle Clone Mode (Off / Mirror / Offset)',
+			options: [],
+			callback: async () => {
+				await self.cycleCloneMode()
+			},
+		},
 	}
 }

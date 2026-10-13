@@ -24,7 +24,18 @@ const STATIC_VARIABLE_DEFS = {
 	selLayerSrc: { name: 'Selected Layer: Source' },
 	selLayerPos: { name: 'Selected Layer: X,Y Position' },
 	nudgeStep: { name: 'Nudge Step Size (px)' },
+	cloneModeDisplay: { name: 'Selected Layer: Clone Mode (Off / Mirror / Offset)' },
 }
+
+// LCC's own <Mode> values/names, straight from the manual.
+const CLONE_MODE_NAMES = { 0: 'Off', 1: 'Offset', 2: 'Mirror' }
+
+// Cycle order for the Clone button -- Off -> Mirror -> Offset -> Off...
+// (user-specified order, not LCC's own 0/1/2 numeric order). Always
+// computed from the real polled this.cloneMode for the selected layer
+// (see cycleCloneMode), never assumed/defaulted, so pressing this never
+// jumps a layer that's already in one state to the wrong next one.
+const CLONE_MODE_CYCLE = [0, 2, 1]
 
 // RSF's Frame Rate ID, bucketed to a clean round-number Hz "family" for
 // nudge-repeat interval math instead of exact fractional rates (NTSC is
@@ -366,10 +377,12 @@ class SpyderInstance extends InstanceBase {
 		// preset, and short source names that only need 1 line don't carry a
 		// dangling blank second line.
 		const [srcLine1, srcLine2] = wrapSourceName(this.getLayerSource(this.selectedLayer))
+		const cloneMode = this.cloneMode?.[this.selectedProtocolId()]
 		this.setVariableValues({
 			selLayerNum: `LAYER ${String(this.selectedLayer).padStart(2, '0')}`,
 			selLayerSrc: [srcLine1, srcLine2].filter(Boolean).join('\n'),
 			selLayerPos: pos ? `${pos.x},${pos.y}` : '...',
+			cloneModeDisplay: CLONE_MODE_NAMES[cloneMode] ?? '?',
 		})
 	}
 
@@ -396,6 +409,24 @@ class SpyderInstance extends InstanceBase {
 		const [dx, dy] = NUDGE_DELTAS[direction]
 		const step = this.nudgeStep || NUDGE_STEPS[0]
 		const layerId = this.selectedProtocolId()
+
+		if (this.targetFunction === 'clone') {
+			// Offset is X-axis only (confirmed) -- up/down/diagonals have no
+			// meaning here, silently ignored rather than sent as a meaningless
+			// command. Only proceeds if this layer's real polled clone mode is
+			// actually Offset (1) -- never assumed, same caution as
+			// cycleCloneMode.
+			if (dy !== 0 || this.cloneMode[layerId] !== '1') {
+				return
+			}
+			await this.queueCmd(`LCC ${layerId} 1 ${dx * step} 0`)
+			// No position tracking here, unlike the KPS branch below -- LCC's
+			// Clone Offset can't be read back in pixels (see
+			// spyder-module-layer-positioning memory), so there's no
+			// trustworthy running value to display.
+			return
+		}
+
 		await this.queueCmd(`KPS 1 ${dx * step} ${dy * step} ${layerId}`)
 		const prev = this.layerPos[layerId]
 		if (prev) {
@@ -423,6 +454,37 @@ class SpyderInstance extends InstanceBase {
 			clearInterval(this.nudgeTimers[direction])
 			delete this.nudgeTimers[direction]
 		}
+	}
+
+	// Advances the Clone button's cycle (Off -> Mirror -> Offset -> Off...)
+	// from the REAL currently-known clone mode for the selected layer --
+	// never from an assumed/previous value. Refuses to act at all if that
+	// layer's clone mode isn't known yet (no RLK answer for it so far),
+	// rather than guessing and risking an unwanted jump (e.g. landing back
+	// on Off when the real state was actually something else). Also sets
+	// targetFunction to 'clone' so the nudge keys immediately act on
+	// whatever the new state is (doNudge itself checks cloneMode again to
+	// decide whether that's actually Offset before sending anything).
+	cycleCloneMode = async () => {
+		const layerId = this.selectedProtocolId()
+		const current = this.cloneMode[layerId]
+		if (current === undefined) {
+			this.log(
+				'warn',
+				`cycleCloneMode: clone mode for layer ${layerId} isn't known yet (waiting for RLK) -- not sending, to avoid guessing the wrong next state`,
+			)
+			return
+		}
+		const idx = CLONE_MODE_CYCLE.indexOf(Number(current))
+		const next = CLONE_MODE_CYCLE[(idx + 1) % CLONE_MODE_CYCLE.length]
+		// <Offset> is optional on LCC -- omitting it reuses whatever offset
+		// value is already stored on the layer's own KeyFrame (confirmed in
+		// the manual), so switching modes never needs to know/compute a
+		// pixel value first.
+		await this.queueCmd(`LCC ${layerId} ${next} 0`)
+		this.cloneMode[layerId] = String(next)
+		this.targetFunction = 'clone'
+		this.refreshSelectedLayerDisplay()
 	}
 
 	// 'HH:MM' (local time, Companion host's clock) of the last SAV that got
@@ -473,6 +535,8 @@ class SpyderInstance extends InstanceBase {
 		this.status = {}
 		this.layerSource = {} // keyed by protocol layer id (human layer + 1)
 		this.layerPos = {} // keyed by protocol layer id -- {x, y}, only populated for layers an RLK has actually answered for (currently just the selected one), kept in sync optimistically by doNudge's own KPS writes
+		this.cloneMode = {} // keyed by protocol layer id -- real polled LCC Mode (0/1/2), from RLK's Clone Mode field. undefined until that layer's first RLK answers -- cycleCloneMode refuses to guess/cycle from an unknown state
+		this.targetFunction = 'pos' // 'pos' | 'clone' -- what the nudge keys currently act on, see doNudge
 		this.selectedLayer = 1 // human-numbered -- "select target" for the layer-positioning display key / nudge actions
 		this.frameRateHz = 60 // overwritten once the first RSF answers -- see FRAME_RATE_FAMILY_HZ
 		this.nudgeStep = NUDGE_STEPS[0] // px -- see cycle_nudge_step
@@ -626,18 +690,23 @@ class SpyderInstance extends InstanceBase {
 								break
 							case 'RLK': {
 								// Body (after the leading "0 " result code) is '<RelH> <RelV>
-								// <X> <Y> <Width> <Height> ...' per the manual -- X/Y are
-								// indices [2]/[3]. Only tracking position for now (the
-								// "select target" display key); the clone mode/offset fields
-								// later in this same response aren't read yet.
+								// <X> <Y> <Width> <Height> ... <Clone Mode> <Clone Offset> ...'
+								// per the manual -- X/Y are indices [2]/[3], Clone Mode is [20]
+								// (Clone Offset [21] still isn't read -- see
+								// spyder-module-layer-positioning memory on why it can't be
+								// trusted in pixels anyway).
 								const body = msg.slice(2).split(' ')
 								const x = parseInt(body[2])
 								const y = parseInt(body[3])
+								const cloneMode = body[20]
 								if (!isNaN(x) && !isNaN(y)) {
 									this.layerPos[cmds[1]] = { x, y }
-									if (cmds[1] === this.selectedProtocolId()) {
-										this.refreshSelectedLayerDisplay()
-									}
+								}
+								if (cloneMode !== undefined) {
+									this.cloneMode[cmds[1]] = cloneMode
+								}
+								if (cmds[1] === this.selectedProtocolId()) {
+									this.refreshSelectedLayerDisplay()
 								}
 								break
 							}

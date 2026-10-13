@@ -485,6 +485,55 @@ export function GetPresetDefinitions(self) {
 				},
 			],
 		},
+
+		// Which hardware thing the nudge keys act on. Pos is a plain static
+		// button (never touches the device, just a UI-state switch -- see
+		// select_target_pos). Clone's label shows the SELECTED layer's real
+		// polled clone mode (cloneModeDisplay, from RLK) -- never a value
+		// this button itself assumes -- so it never looks like it's about to
+		// jump to the wrong state; cycleCloneMode in spyder.js is what
+		// actually computes/sends the next state from that real value.
+		select_target_pos: {
+			type: 'layered',
+			name: 'Target Function: Layer Position',
+			elements: [
+				{ id: 'bg', type: 'box', color: 0x333300 },
+				{
+					id: 'label',
+					type: 'text',
+					text: 'TARGET\nPOS',
+					font: 'companion-mono',
+					fontsize: 100,
+					fontsizeAllowShrink: true,
+					color: 0xffffff,
+					halign: 'center',
+					valign: 'center',
+				},
+			],
+			feedbacks: [],
+			steps: [{ down: [{ actionId: 'select_target_pos', options: {} }], up: [] }],
+		},
+
+		cycle_clone_mode: {
+			type: 'layered',
+			name: 'Target Function: Cycle Clone Mode',
+			elements: [
+				{ id: 'bg', type: 'box', color: 0x330033 },
+				{
+					id: 'label',
+					type: 'text',
+					text: 'CLONE\n$(spyder:cloneModeDisplay)',
+					font: 'companion-mono',
+					fontsize: 100,
+					fontsizeAllowShrink: true,
+					color: 0xffffff,
+					halign: 'center',
+					valign: 'center',
+				},
+			],
+			feedbacks: [],
+			steps: [{ down: [{ actionId: 'cycle_clone_mode', options: {} }], up: [] }],
+		},
 	}
 
 	const commandKeyIds = []
@@ -583,6 +632,8 @@ export function GetPresetDefinitions(self) {
 				'nudge_upright',
 				'nudge_downleft',
 				'nudge_downright',
+				'select_target_pos',
+				'cycle_clone_mode',
 			],
 		},
 	]

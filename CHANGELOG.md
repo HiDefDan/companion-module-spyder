@@ -507,3 +507,50 @@ phase.
   top-left (`halign: left`, was `center`), `layerNum` top-right
   (`halign: right`), `pos` bottom-left (`valign: bottom`, `halign:
   left`).
+
+### Layer Positioning: Clone targeting (Phase 3 start)
+First piece of `LCC` (clone) control -- a "target function" switch
+deciding what the existing nudge keys act on, plus the actual clone-mode
+control. Scoped and refined over several rounds before building: first
+considered a single 3-way cycle button (Pos/Mirror/Offset), then split
+into the two-button model actually built here (`Pos` is its own
+dedicated key; `Clone` is a separate cycling key mapping directly onto
+`LCC`'s own `Mode` enum) because a single shared cycle couldn't give
+Mirror a sensible "boolean trigger" on its own.
+
+- `RLK`'s response parsing now also reads `<Clone Mode>` (index 20 of
+  the body, alongside the existing `<X>`/`<Y>` at [2]/[3]) into a new
+  `this.cloneMode` map, keyed by protocol layer id -- polled the same
+  way position already was (on selection change and every discovery
+  tick), satisfying the explicit requirement that the real clone state
+  be known/displayed before any cycling happens, not assumed.
+- `cloneModeDisplay` variable, set by `refreshSelectedLayerDisplay()`,
+  shows the *real* polled clone mode for the selected layer
+  ("Off"/"Offset"/"Mirror"), not a value this module assumed.
+- `select_target_pos` action + preset ("TARGET POS"): sets
+  `this.targetFunction = 'pos'`. Pure UI-state switch, never sends
+  anything to the device by itself.
+- `cycle_clone_mode` action + preset ("CLONE", showing the live
+  `cloneModeDisplay` variable): `cycleCloneMode()` in `spyder.js`
+  computes the next state in the user-specified Off -> Mirror -> Offset
+  -> Off... order **from the real polled `this.cloneMode` for the
+  selected layer**, never from an assumed/previous value, and **refuses
+  to send anything at all if that layer's clone mode isn't known yet**
+  (logs a warning instead) rather than risk jumping to the wrong state
+  on a layer whose RLK hasn't answered yet. Sends a 3-argument `LCC
+  <layer> <mode> 0` -- `<Offset>` is confirmed optional in the manual
+  ("the clone offset value stored in the layer's current KeyFrame is
+  used"), so switching modes never needs to already know a pixel
+  value. Also sets `this.targetFunction = 'clone'`.
+- `doNudge` (the existing hold-to-repeat nudge logic) now branches on
+  `this.targetFunction`: `'pos'` is unchanged (`KPS`, all 8
+  directions); `'clone'` sends `LCC <layer> 1 <dx> 0` instead, but only
+  for left/right (up/down/diagonals silently no-op -- Offset is
+  X-axis-only) and only if the selected layer's real polled clone mode
+  is actually Offset (`'1'`) -- never forced. No position tracking for
+  the clone branch (unlike the `KPS` branch) -- `LCC`'s Clone Offset
+  still can't be read back in pixels, so there's nothing trustworthy to
+  display.
+- Not yet done: visually dimming the irrelevant nudge keys (up/down/
+  diagonals) while in Offset mode, rather than letting them silently
+  no-op -- floated as a follow-up, not yet requested/built.
