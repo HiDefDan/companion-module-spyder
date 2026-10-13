@@ -101,7 +101,7 @@ export function compileActionDefinitions(self) {
 		},
 
 		'rrl_refresh': {
-			name: 'Refresh Sources / Command Keys Now',
+			name: 'Refresh Data',
 			options: [
 				{
 					type: 'multidropdown',
@@ -118,6 +118,13 @@ export function compileActionDefinitions(self) {
 				for (const type of action.options.types) {
 					await self.queueCmd(`RRL ${type} -1`)
 				}
+				// Frame rate isn't part of the types multiselect -- it's a
+				// single cheap value, not a register list worth making
+				// selective, but it's small enough data that this button
+				// should refresh it too rather than only on the next
+				// discovery tick (it "could change if the Spyder gets
+				// reconfigured mid-connection").
+				await self.queueCmd('RSF')
 				// Counts as a discovery tick, so the periodic poll doesn't
 				// immediately redo the same fetch a moment later.
 				self.lastDiscoveryAt = Date.now()
@@ -453,6 +460,66 @@ export function compileActionDefinitions(self) {
 				self.selectedLayer = self.selectedLayer <= 1 ? max : self.selectedLayer - 1
 				self.refreshSelectedLayerDisplay()
 				await sendCmd(`RLK ${self.selectedLayer + 1}`)
+			},
+		},
+
+		'cycle_nudge_step': {
+			name: 'Cycle Nudge Step Size (1px / 10px / 100px)',
+			options: [],
+			callback: async () => {
+				const steps = [1, 10, 100]
+				const idx = steps.indexOf(self.nudgeStep)
+				self.nudgeStep = steps[(idx + 1) % steps.length]
+				self.setVariableValues({ nudgeStep: `${self.nudgeStep}px` })
+			},
+		},
+
+		// Nudges the currently-selected layer while held -- the preset wires
+		// nudge_start to its 'down' step and nudge_stop (same direction) to
+		// 'up'. See spyder.js's startNudge/stopNudge/doNudge for the actual
+		// repeat-timer/throttle/accel logic; these two actions just forward
+		// into it. Not run through queueCmd/sendCmd directly -- doNudge owns
+		// its own send discipline (skips a tick entirely rather than queuing
+		// one up, see its comment in spyder.js).
+		'nudge_start': {
+			name: 'Nudge Selected Layer: Start (hold)',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Direction',
+					id: 'direction',
+					default: 'up',
+					choices: [
+						{ id: 'up', label: 'Up' },
+						{ id: 'down', label: 'Down' },
+						{ id: 'left', label: 'Left' },
+						{ id: 'right', label: 'Right' },
+					],
+				},
+			],
+			callback: async (action) => {
+				self.startNudge(action.options.direction)
+			},
+		},
+
+		'nudge_stop': {
+			name: 'Nudge Selected Layer: Stop',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Direction',
+					id: 'direction',
+					default: 'up',
+					choices: [
+						{ id: 'up', label: 'Up' },
+						{ id: 'down', label: 'Down' },
+						{ id: 'left', label: 'Left' },
+						{ id: 'right', label: 'Right' },
+					],
+				},
+			],
+			callback: async (action) => {
+				self.stopNudge(action.options.direction)
 			},
 		},
 	}

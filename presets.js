@@ -107,13 +107,13 @@ export function GetPresetDefinitions(self) {
 
 		rrl_refresh_both: {
 			type: 'layered',
-			name: 'Refresh Sources & Command Keys Now',
+			name: 'Refresh Data',
 			elements: [
 				{ id: 'bg', type: 'box', color: 0x000000 },
 				{
 					id: 'label',
 					type: 'text',
-					text: 'Refresh\nSrc + Keys',
+					text: 'Refresh\nData',
 					font: 'companion-mono',
 					fontsize: 100,
 					fontsizeAllowShrink: true,
@@ -256,6 +256,136 @@ export function GetPresetDefinitions(self) {
 			feedbacks: [],
 			steps: [{ down: [], up: [] }],
 		},
+
+		cycle_nudge_step: {
+			type: 'layered',
+			name: 'Cycle Nudge Step Size',
+			elements: [
+				{ id: 'bg', type: 'box', color: 0x202020 },
+				{
+					id: 'label',
+					type: 'text',
+					text: 'STEP\n$(spyder:nudgeStep)',
+					font: 'companion-mono',
+					fontsize: 100,
+					fontsizeAllowShrink: true,
+					color: 0xffffff,
+					halign: 'center',
+					valign: 'center',
+				},
+			],
+			feedbacks: [],
+			steps: [{ down: [{ actionId: 'cycle_nudge_step', options: {} }], up: [] }],
+		},
+
+		// Four directions, each a simple bg+arrow label. nudge_start fires on
+		// down (immediate first move + starts the repeat timer while held),
+		// nudge_stop (same direction) fires on up (stops the repeat timer).
+		// See spyder.js's startNudge/stopNudge/doNudge for the actual
+		// throttle/acceleration behavior.
+		nudge_up: {
+			type: 'layered',
+			name: 'Nudge Selected Layer: Up',
+			elements: [
+				{ id: 'bg', type: 'box', color: 0x1a1a33 },
+				{
+					id: 'label',
+					type: 'text',
+					text: '^',
+					font: 'companion-mono',
+					fontsize: 150,
+					fontsizeAllowShrink: true,
+					color: 0xffffff,
+					halign: 'center',
+					valign: 'center',
+				},
+			],
+			feedbacks: [],
+			steps: [
+				{
+					down: [{ actionId: 'nudge_start', options: { direction: 'up' } }],
+					up: [{ actionId: 'nudge_stop', options: { direction: 'up' } }],
+				},
+			],
+		},
+
+		nudge_down: {
+			type: 'layered',
+			name: 'Nudge Selected Layer: Down',
+			elements: [
+				{ id: 'bg', type: 'box', color: 0x1a1a33 },
+				{
+					id: 'label',
+					type: 'text',
+					text: 'v',
+					font: 'companion-mono',
+					fontsize: 150,
+					fontsizeAllowShrink: true,
+					color: 0xffffff,
+					halign: 'center',
+					valign: 'center',
+				},
+			],
+			feedbacks: [],
+			steps: [
+				{
+					down: [{ actionId: 'nudge_start', options: { direction: 'down' } }],
+					up: [{ actionId: 'nudge_stop', options: { direction: 'down' } }],
+				},
+			],
+		},
+
+		nudge_left: {
+			type: 'layered',
+			name: 'Nudge Selected Layer: Left',
+			elements: [
+				{ id: 'bg', type: 'box', color: 0x1a1a33 },
+				{
+					id: 'label',
+					type: 'text',
+					text: '<',
+					font: 'companion-mono',
+					fontsize: 150,
+					fontsizeAllowShrink: true,
+					color: 0xffffff,
+					halign: 'center',
+					valign: 'center',
+				},
+			],
+			feedbacks: [],
+			steps: [
+				{
+					down: [{ actionId: 'nudge_start', options: { direction: 'left' } }],
+					up: [{ actionId: 'nudge_stop', options: { direction: 'left' } }],
+				},
+			],
+		},
+
+		nudge_right: {
+			type: 'layered',
+			name: 'Nudge Selected Layer: Right',
+			elements: [
+				{ id: 'bg', type: 'box', color: 0x1a1a33 },
+				{
+					id: 'label',
+					type: 'text',
+					text: '>',
+					font: 'companion-mono',
+					fontsize: 150,
+					fontsizeAllowShrink: true,
+					color: 0xffffff,
+					halign: 'center',
+					valign: 'center',
+				},
+			],
+			feedbacks: [],
+			steps: [
+				{
+					down: [{ actionId: 'nudge_start', options: { direction: 'right' } }],
+					up: [{ actionId: 'nudge_stop', options: { direction: 'right' } }],
+				},
+			],
+		},
 	}
 
 	const commandKeyIds = []
@@ -341,7 +471,16 @@ export function GetPresetDefinitions(self) {
 		{
 			id: 'layer_positioning',
 			name: 'Layer Positioning',
-			definitions: ['select_prev', 'select_next', 'layer_select_display'],
+			definitions: [
+				'select_prev',
+				'select_next',
+				'layer_select_display',
+				'cycle_nudge_step',
+				'nudge_up',
+				'nudge_down',
+				'nudge_left',
+				'nudge_right',
+			],
 		},
 	]
 

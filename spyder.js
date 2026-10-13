@@ -24,7 +24,39 @@ const STATIC_VARIABLE_DEFS = {
 	selLayerSrcLine1: { name: 'Selected Layer: Source (line 1)' },
 	selLayerSrcLine2: { name: 'Selected Layer: Source (line 2)' },
 	selLayerPos: { name: 'Selected Layer: X,Y Position' },
+	nudgeStep: { name: 'Nudge Step Size (px)' },
 }
+
+// RSF's Frame Rate ID, bucketed to a clean round-number Hz "family" for
+// nudge-repeat interval math instead of exact fractional rates (NTSC is
+// really 59.94Hz, FR_29_97 29.97Hz, etc) -- per explicit request: 23.98/24
+// both count as 48, 25/PAL both count as 50, and 29.97/30/60/NTSC all
+// count as 60. this.frameRateHz defaults to 60 (the family this venue's
+// frame actually reports, confirmed live) until the first RSF answers.
+const FRAME_RATE_FAMILY_HZ = {
+	0: 60, // FR_60
+	1: 60, // NTSC (59.94)
+	2: 50, // PAL
+	3: 48, // FR_48
+	4: 60, // FR_30
+	5: 60, // FR_29_97
+	6: 50, // FR_25
+	7: 48, // FR_24
+	8: 48, // FR_23_98
+}
+
+// KPS's X/Y deltas for one step in each nudge direction (before scaling by
+// this.nudgeStep) -- Y increases downward, confirmed against RPD/RLK's
+// top-left-origin absolute pixel coordinates.
+const NUDGE_DELTAS = {
+	up: [0, -1],
+	down: [0, 1],
+	left: [-1, 0],
+	right: [1, 0],
+}
+
+// Allowed nudge step sizes (px), in cycle order -- see cycle_nudge_step.
+const NUDGE_STEPS = [1, 10, 100]
 
 // Greedy two-line word-wrap for the display key's source-name lines (see
 // companion-expression-text-no-live-refresh memory -- no live scroll, so
@@ -79,6 +111,8 @@ const COMMAND_NAMES = {
 	SCR: 'Script Cue Request',
 	RLS: 'Request Layer Source',
 	RLK: 'Request Layer KeyFrame',
+	RSF: 'Request System FrameRate',
+	KPS: 'Layer Position Change',
 	SRA: 'Source Apply',
 	ASC: 'Advance Script Cue',
 	BPR: 'Basic Preset Recall',
@@ -115,7 +149,7 @@ function describeCmd(cmd) {
 
 // Named-field summary of a response body, for the commands this module
 // sends itself that have a structured payload beyond the bare result code
-// (RLC/RLS/RRL/RRD/SCR/RLK). Everything else (one-shot
+// (RLC/RLS/RRL/RRD/SCR/RLK/RSF). Everything else (one-shot
 // action commands like SRA/ASC/...) has a bare '<Result Code>' response
 // per the manual, nothing more to show, so it falls back to the
 // %20-decoded body as-is. cmds is the request's tokens (already parsed
@@ -143,6 +177,11 @@ function describeResponseBody(cmds, resultCode, msg) {
 			return `source="${decodeURIComponent(parts[0] ?? '')}" (sourceId=${parts[1] ?? '?'})`
 		case 'RLK':
 			return `X=${parts[2] ?? '?'}, Y=${parts[3] ?? '?'}, Width=${parts[4] ?? '?'}, Height=${parts[5] ?? '?'}`
+		case 'RSF': {
+			const id = parseInt(parts[0])
+			const hz = FRAME_RATE_FAMILY_HZ[id]
+			return hz !== undefined ? `frameRateId=${id} (${hz}Hz family)` : `frameRateId=${id} (unknown)`
+		}
 		case 'RRL': {
 			const count = parts[0]
 			const items = []
@@ -308,6 +347,60 @@ class SpyderInstance extends InstanceBase {
 		})
 	}
 
+	// Sends one relative KPS move for the currently-selected layer and, if
+	// the send actually went out, optimistically updates the cached position
+	// by the same delta -- KPS's response is a bare result code (no data to
+	// read back), and there's no cheaper way to keep the display's position
+	// line live while nudging than trusting what we ourselves just sent.
+	// Deliberately skips the send entirely (rather than queuing it) if
+	// anything else is already in flight or queued: nudge repeat intervals
+	// run far faster than the slow discovery-tick traffic, so queuing
+	// instead of skipping here could let a backlog of queued moves build up
+	// behind a discovery burst and keep moving the layer well after the key
+	// is released -- exactly the "shoots out of the pixelspace" failure
+	// mode this whole throttle/accel design exists to avoid. A skipped tick
+	// is simply lost, not deferred -- acceptable since the shared command
+	// channel is idle the overwhelming majority of the time (discovery
+	// ticks are ~60s apart and brief) and a hold lasts at most a few
+	// seconds.
+	doNudge = async (direction) => {
+		if (this.pending.length || this.nextCmd.length) {
+			return
+		}
+		const [dx, dy] = NUDGE_DELTAS[direction]
+		const step = this.nudgeStep || NUDGE_STEPS[0]
+		const layerId = this.selectedProtocolId()
+		await this.queueCmd(`KPS 1 ${dx * step} ${dy * step} ${layerId}`)
+		const prev = this.layerPos[layerId]
+		if (prev) {
+			this.layerPos[layerId] = { x: prev.x + dx * step, y: prev.y + dy * step }
+			if (layerId === this.selectedProtocolId()) {
+				this.refreshSelectedLayerDisplay()
+			}
+		}
+	}
+
+	// Starts (or no-ops if already running) the repeat timer for one nudge
+	// direction -- sends one move immediately (so a quick tap isn't delayed
+	// behind the first interval tick), then repeats at an interval derived
+	// from the cached RSF-reported frame rate, scaled by sqrt(step) so
+	// bigger steps genuinely move faster overall (real acceleration)
+	// without simply multiplying the raw command rate by the step size
+	// (which is what actually risked "shooting out of the pixelspace").
+	startNudge = (direction) => {
+		if (this.nudgeTimers[direction]) return
+		this.doNudge(direction)
+		const intervalMs = (1000 / this.frameRateHz) * Math.sqrt(this.nudgeStep || NUDGE_STEPS[0])
+		this.nudgeTimers[direction] = setInterval(() => this.doNudge(direction), intervalMs)
+	}
+
+	stopNudge = (direction) => {
+		if (this.nudgeTimers[direction]) {
+			clearInterval(this.nudgeTimers[direction])
+			delete this.nudgeTimers[direction]
+		}
+	}
+
 	// 'HH:MM' (local time, Companion host's clock) of the last SAV that got
 	// a Success response, or undefined if there hasn't been one this
 	// connection -- see the 'SAV' case in the data handler.
@@ -333,6 +426,13 @@ class SpyderInstance extends InstanceBase {
 	// When module gets deleted
 	async destroy() {
 		this.setStatus(InstanceStatus.Disconnected, 'Closed')
+		// Stop any held-down nudge repeat timers -- otherwise one left
+		// running across a destroy (connection deleted/disabled while a key
+		// was held) would keep firing into a torn-down udp instance.
+		for (const direction of Object.keys(this.nudgeTimers ?? {})) {
+			clearInterval(this.nudgeTimers[direction])
+		}
+		this.nudgeTimers = {}
 		if (this.udp !== undefined) {
 			this.udp.destroy()
 		}
@@ -348,8 +448,11 @@ class SpyderInstance extends InstanceBase {
 		this.nextCmd = []
 		this.status = {}
 		this.layerSource = {} // keyed by protocol layer id (human layer + 1)
-		this.layerPos = {} // keyed by protocol layer id -- {x, y}, only populated for layers an RLK has actually answered for (currently just the selected one)
+		this.layerPos = {} // keyed by protocol layer id -- {x, y}, only populated for layers an RLK has actually answered for (currently just the selected one), kept in sync optimistically by doNudge's own KPS writes
 		this.selectedLayer = 1 // human-numbered -- "select target" for the layer-positioning display key / nudge actions
+		this.frameRateHz = 60 // overwritten once the first RSF answers -- see FRAME_RATE_FAMILY_HZ
+		this.nudgeStep = NUDGE_STEPS[0] // px -- see cycle_nudge_step
+		this.nudgeTimers = {} // keyed by direction -- setInterval id while that direction is held, see startNudge/stopNudge
 		this.lastRecalled = undefined // {registerId, cue} -- set by recall_at_cue, read by is_selected_key/cue_fwd/cue_rev
 		this.watchedLayers = [] // populated once RLC answers -- see the 'RLC' case below
 		this.pollRateMs = Number(this.config.pollRateMs) || 2500
@@ -514,6 +617,14 @@ class SpyderInstance extends InstanceBase {
 								}
 								break
 							}
+							case 'RSF': {
+								const id = parseInt(msg.slice(2).split(' ')[0])
+								const hz = FRAME_RATE_FAMILY_HZ[id]
+								if (hz !== undefined) {
+									this.frameRateHz = hz
+								}
+								break
+							}
 							case 'RLC': {
 								// Response includes the Spyder's 2 background layers; the
 								// manual says applications should subtract them, so this
@@ -600,7 +711,7 @@ class SpyderInstance extends InstanceBase {
 				this.sources = {} // keyed by source register id; feeds src_<N> variables and the sra action's dropdown
 				this.variableDefs = { ...STATIC_VARIABLE_DEFS }
 				this.setVariableDefinitions(this.variableDefs)
-				this.setVariableValues({ LastSave: '' })
+				this.setVariableValues({ LastSave: '', nudgeStep: `${this.nudgeStep}px` })
 				this.variableValues = {}
 				this.refreshSelectedLayerDisplay() // placeholder values until the first poll's RLK answers
 				// No immediate this.poll() call here -- RLC was just sent, not
@@ -666,6 +777,10 @@ class SpyderInstance extends InstanceBase {
 				// 24 layers (unlike RLS), since position is only displayed/acted
 				// on for the one currently selected.
 				this.nextCmd.push(`RLK ${this.selectedProtocolId()}`)
+				// Frame rate rarely changes mid-show, but it's a single cheap
+				// command and could change if the Spyder gets reconfigured while
+				// connected -- cached, not re-derived per nudge tick.
+				this.nextCmd.push('RSF')
 				this.nextCmd.push('RRL 6 -1')
 				const cmd = 'RRL 4 -1'
 				await this.queueCmd(cmd)

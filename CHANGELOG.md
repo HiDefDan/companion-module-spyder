@@ -392,3 +392,63 @@ position: `KPS`/`RLK` round-trip exactly in real pixels both ways.
   `pollTimer` interval's first firing is now what runs the real first
   poll, by which point `RLC`'s response has reliably already landed
   even at the fastest allowed poll rate (500ms) on a LAN.
+
+### Layer Positioning: Nudge (Phase 2)
+Second slice of absolute-pixel layer positioning -- adds the actual
+movement actions on top of Phase 1's "select target". Covers plain
+layer nudging only; clone-offset (`LCC`) positioning is still a later
+phase.
+
+- `RSF` (Request System FrameRate) is now read at: every discovery tick
+  (alongside the existing `RLS`/`RLK`/`RRL` traffic), and the `rrl_refresh`
+  action/preset (renamed `Refresh Data`, see below). Its enum response is
+  bucketed to a clean round-number Hz "family" (`FRAME_RATE_FAMILY_HZ`)
+  rather than tracked as an exact fractional rate -- 23.98/24 both count
+  as 48, 25/PAL both count as 50, 29.97/30/60/NTSC all count as 60 --
+  cached as `this.frameRateHz` (defaults to 60, this venue's confirmed
+  family, until the first `RSF` answers). Drives the nudge repeat
+  interval below; not currently exposed as a variable.
+- `rrl_refresh` action and its `rrl_refresh_both` preset renamed from
+  "Refresh Sources / Command Keys Now" / "Refresh Sources & Command Keys
+  Now" to just **"Refresh Data"** -- the longer name didn't fit a 15mm
+  Stream Deck key even before this added a third thing (frame rate) for
+  it to refresh.
+- `cycle_nudge_step` action + preset: cycles `this.nudgeStep` through
+  1px/10px/100px, shown live via a new `nudgeStep` variable.
+- `nudge_start` / `nudge_stop` actions (direction option: up/down/left/
+  right) + four directional presets, wired to a preset's `down`/`up`
+  steps respectively (not two taps -- `down` starts repeating while
+  held, `up` stops it). The actual move/throttle/accel logic lives in
+  three new `spyder.js` instance methods:
+  - `doNudge(direction)`: sends one relative `KPS` move (`KPS 1 <dx>
+    <dy> <layerId>` -- hardware-side relative accumulation, no need to
+    track/send absolute coordinates) for the currently-selected layer,
+    and optimistically updates the cached `this.layerPos` by the same
+    delta so the select-target display's position line stays live
+    while nudging (`KPS`'s response is a bare result code, nothing to
+    read back). Deliberately **skips the send entirely** (rather than
+    queuing it) if anything is already pending/queued on the shared
+    single-outstanding-command channel -- queuing instead would let a
+    backlog of moves build up behind a discovery-tick burst and keep
+    moving the layer after the key was released, the exact "shoots out
+    of the pixelspace" failure mode described when this feature was
+    scoped. A skipped tick is simply lost, not deferred; acceptable
+    since the channel is idle the vast majority of the time.
+  - `startNudge(direction)`: no-ops if already repeating; otherwise
+    sends one move immediately (so a tap isn't delayed behind the first
+    interval tick) and starts a `setInterval` for the rest. Interval is
+    `(1000 / this.frameRateHz) * sqrt(this.nudgeStep)` -- 1px at the
+    cached frame rate feels like "1px per frame" (the explicitly
+    requested feel), while bigger steps get genuine acceleration
+    (sub-linear interval scaling) rather than either (a) the same total
+    px/sec regardless of step size, which would make picking a bigger
+    step pointless, or (b) the same interval regardless of step size,
+    which is what risked the runaway-overshoot failure mode in the
+    first place.
+  - `stopNudge(direction)`: clears that direction's timer.
+  - `destroy()` now also clears any still-running nudge timers, so a
+    connection torn down mid-hold doesn't leave an interval firing into
+    a destroyed `udp` instance.
+- A scrolling/marquee text display was explicitly NOT reattempted here
+  for any of this -- see the Select Target phase's entry above and
+  `companion-expression-text-no-live-refresh` memory.
