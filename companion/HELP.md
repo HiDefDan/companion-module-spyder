@@ -61,33 +61,30 @@ adding a source or command key -- use the "Refresh Sources / Command
 Keys Now" action (multi-select which type(s)), or drag the "Refresh
 Sources & Command Keys Now" preset onto a button.
 
-**Script Cue workflow (Shotbox-inspired)**
+**Script Cue workflow**
 
 Spyder's `ASC` (Advance Script Cue) has no script-ID argument -- it
-always acts on Spyder's own single global "current script," which is
-why the ST420 Shotbox's keys turn red on recall: that's the physical
-panel's own local memory of what it last selected, not something read
-back from Spyder. This module mirrors that:
+always acts on Spyder's own single global "current script." Since
+there's nothing to read back from Spyder about which key is
+"selected," this module tracks it locally:
 
 - "Recall Command Key at Cue" (dropdown-fed by live command keys, cue
-  defaults to the connection's "Default recall cue" config -- 0 by
-  default, matching the Shotbox's own equivalent setting) both sends
-  `RSC` and records what it just recalled.
+  defaults to the connection's "Default recall cue" config, 0 by
+  default) both sends `RSC` and records what it just recalled.
 - "Is Selected Command Key" feedback highlights whichever button's
-  Command Key matches that recording -- same red-key idea, same
-  caveat: it's local memory, not a live readback.
+  Command Key matches that recording. Local memory only -- not a live
+  readback.
 - "Cue Advance (FWD)" / "Cue Back (REV)" send `ASC +1` / `ASC -1` and
   nudge the recorded cue, clamped using that key's own `numCues` (from
   `RRD`) where known, so it won't track past a script's actual cue
   count.
 - One preset per currently-discovered command key (category "Command
   Keys"), each pre-wired with "Recall Command Key at Cue" and "Is
-  Selected Command Key" for that specific key -- mirrors the Shotbox's
-  "Read CMD Keys" auto-populate. Unlike the physical panel, this stays
-  live: regenerated whenever a key is added, renamed, or removed, with
-  an `info` log noting the change. A button already dragged from an
-  older version of one of these does *not* auto-update or
-  auto-disappear -- re-drag it from the Presets tab if its key changed.
+  Selected Command Key" for that specific key. Kept live: regenerated
+  whenever a key is added, renamed, or removed, with an `info` log
+  noting the change. A button already dragged from an older version
+  of one of these does *not* auto-update or auto-disappear -- re-drag
+  it from the Presets tab if its key changed.
 
 **Logging**
 

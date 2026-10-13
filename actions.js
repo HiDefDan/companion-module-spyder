@@ -52,7 +52,7 @@ export function compileActionDefinitions(self) {
 				},
 				{
 					type: 'number',
-					label: 'Cue (0 = Preview, 1 = Program, matching the Shotbox convention)',
+					label: 'Cue (0 = Preview, 1 = Program)',
 					id: 'cue',
 					default: Number(self.config.defaultCue) || 0,
 					min: 0,

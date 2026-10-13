@@ -589,7 +589,7 @@ class SpyderInstance extends InstanceBase {
 			{
 				type: 'number',
 				id: 'defaultCue',
-				label: 'Default recall cue (0 = Preview, 1 = Program, matching the Shotbox convention)',
+				label: 'Default recall cue (0 = Preview, 1 = Program)',
 				width: 6,
 				default: 0,
 				min: 0,
