@@ -568,3 +568,14 @@ Mirror a sensible "boolean trigger" on its own.
   previously no visual indicator anywhere for whether the nudge keys
   were currently armed for "Pos" or "Clone" -- both actions now also
   call `checkFeedbacks('is_target_function')` after changing it.
+
+### Fixed (Layer Positioning)
+- `cycle_clone_mode` always cycled on every press -- meaning pressing it
+  on a layer already in the desired mode (e.g. already Offset) would
+  immediately advance it away (to Off), not just arm nudging for the
+  mode it was already in. Added `this.cloneArmed`: the first press after
+  switching away from 'clone' (fresh connect, Pos was last pressed, or a
+  different layer was just selected -- `select_next`/`select_prev`/
+  `select_target_pos` all reset it) now only arms `targetFunction`
+  against whatever the layer's real mode already is, sending nothing.
+  Only a press while already armed actually cycles to the next mode.

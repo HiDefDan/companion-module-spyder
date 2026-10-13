@@ -461,11 +461,26 @@ class SpyderInstance extends InstanceBase {
 	// never from an assumed/previous value. Refuses to act at all if that
 	// layer's clone mode isn't known yet (no RLK answer for it so far),
 	// rather than guessing and risking an unwanted jump (e.g. landing back
-	// on Off when the real state was actually something else). Also sets
-	// targetFunction to 'clone' so the nudge keys immediately act on
-	// whatever the new state is (doNudge itself checks cloneMode again to
-	// decide whether that's actually Offset before sending anything).
+	// on Off when the real state was actually something else).
+	//
+	// First press after switching away from 'clone' (either just
+	// connected, Pos was last pressed, or a different layer was just
+	// selected) only ARMS -- sets targetFunction to 'clone' so the nudge
+	// keys act on whatever this layer's real mode already is, without
+	// sending anything. This matters specifically for a layer that's
+	// already in the mode you want (e.g. already Offset): arming it
+	// shouldn't also advance it to Off. Only once already armed does a
+	// press actually cycle to the next mode -- this.cloneArmed tracks
+	// that, and is reset by select_next/select_prev and select_target_pos.
 	cycleCloneMode = async () => {
+		if (this.targetFunction !== 'clone' || !this.cloneArmed) {
+			this.targetFunction = 'clone'
+			this.cloneArmed = true
+			this.refreshSelectedLayerDisplay()
+			this.checkFeedbacks('is_target_function')
+			return
+		}
+
 		const layerId = this.selectedProtocolId()
 		const current = this.cloneMode[layerId]
 		if (current === undefined) {
@@ -483,9 +498,7 @@ class SpyderInstance extends InstanceBase {
 		// pixel value first.
 		await this.queueCmd(`LCC ${layerId} ${next} 0`)
 		this.cloneMode[layerId] = String(next)
-		this.targetFunction = 'clone'
 		this.refreshSelectedLayerDisplay()
-		this.checkFeedbacks('is_target_function')
 	}
 
 	// 'HH:MM' (local time, Companion host's clock) of the last SAV that got
@@ -538,6 +551,7 @@ class SpyderInstance extends InstanceBase {
 		this.layerPos = {} // keyed by protocol layer id -- {x, y}, only populated for layers an RLK has actually answered for (currently just the selected one), kept in sync optimistically by doNudge's own KPS writes
 		this.cloneMode = {} // keyed by protocol layer id -- real polled LCC Mode (0/1/2), from RLK's Clone Mode field. undefined until that layer's first RLK answers -- cycleCloneMode refuses to guess/cycle from an unknown state
 		this.targetFunction = 'pos' // 'pos' | 'clone' -- what the nudge keys currently act on, see doNudge
+		this.cloneArmed = false // see cycleCloneMode -- first press after a function/layer switch only arms, doesn't cycle
 		this.selectedLayer = 1 // human-numbered -- "select target" for the layer-positioning display key / nudge actions
 		this.frameRateHz = 60 // overwritten once the first RSF answers -- see FRAME_RATE_FAMILY_HZ
 		this.nudgeStep = NUDGE_STEPS[0] // px -- see cycle_nudge_step
