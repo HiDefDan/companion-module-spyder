@@ -2,8 +2,7 @@ export function GetPresetDefinitions(self) {
 	const presets = {
 		// All four of these are 'layered' (not 'simple') purely for the
 		// font -- same reason as the per-key presets below. Each is just a
-		// bg box + a mono label element; only force_server_save also has a
-		// feedback wired in.
+		// bg box + a mono label element.
 		force_server_save: {
 			type: 'layered',
 			name: 'Force Server Save',
@@ -12,7 +11,16 @@ export function GetPresetDefinitions(self) {
 				{
 					id: 'label',
 					type: 'text',
-					text: `${self.label}\nSAVE`,
+					// $(spyder:LastSave) (blank until the first successful SAV
+					// this connection) instead of wiring sav_last_time's
+					// advanced feedback into this preset -- an advanced
+					// feedback's styleOverrides only declares which
+					// element/property its callback may touch, and whether that
+					// actually drives a layered preset's rendered text at
+					// runtime wasn't reliably working. A live variable sidesteps
+					// that entirely, the same mechanism already proven by the
+					// per-key presets' cKey_rID_<id> text below.
+					text: `${self.label}\nSAVE\n$(spyder:LastSave)`,
 					font: 'companion-mono',
 					fontsize: 100,
 					fontsizeAllowShrink: true,
@@ -21,25 +29,7 @@ export function GetPresetDefinitions(self) {
 					valign: 'center',
 				},
 			],
-			feedbacks: [
-				{
-					feedbackId: 'sav_last_time',
-					options: {},
-					// sav_last_time is `type: 'advanced'`: the actual text shown
-					// (idle vs "...\nlast:HH:MM") comes from its callback at
-					// runtime, same as on a 'simple' preset/hand-added feedback.
-					// This styleOverrides entry's job is only to declare which
-					// element/property that callback is allowed to touch (must
-					// match `affectedProperties: ['text']` in feedbacks.js) so
-					// Companion attaches the feedback to the button at all --
-					// an empty/missing styleOverrides here drops the feedback
-					// entirely, same failure mode as is_selected_key below. The
-					// literal override value is a placeholder, not what's shown.
-					styleOverrides: [
-						{ elementId: 'label', elementProperty: 'text', override: { value: `${self.label}\nSAVE`, isExpression: false } },
-					],
-				},
-			],
+			feedbacks: [],
 			steps: [
 				{
 					down: [

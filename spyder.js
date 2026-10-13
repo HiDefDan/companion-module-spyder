@@ -15,6 +15,13 @@ const Upgradereg = []
 // a fast feedback-latency setting doesn't also speed this up).
 const DISCOVERY_INTERVAL_MS = 60000
 
+// Variables that always exist, independent of command-key/source discovery
+// -- merged into every variableDefs rebuild below so they don't get wiped
+// out when that rebuild replaces the whole object wholesale.
+const STATIC_VARIABLE_DEFS = {
+	LastSave: { name: 'Last Force Server Save (HH:MM)' },
+}
+
 // From the manual's "Command processor responses" table (page 10) -- the
 // first character of every response. 6 (Checksum) is documented as
 // reserved/unused; there's no sequence number or echo of the original
@@ -466,6 +473,7 @@ class SpyderInstance extends InstanceBase {
 								break
 							case 'SAV':
 								this.lastSaveAt = new Date()
+								this.setVariableValues({ LastSave: this.getLastSaveTime() })
 								this.checkFeedbacks('sav_last_time')
 								break
 						}
@@ -475,6 +483,7 @@ class SpyderInstance extends InstanceBase {
 							// description reads "Command Key: <name>" (the term the user
 							// actually sees in Spyder Studio, not the internal "Register").
 							this.variableDefs = {
+								...STATIC_VARIABLE_DEFS,
 								...Object.fromEntries(
 									Object.values(this.reg).map((reg) => [
 										`cKey_rID_${reg.id + 1}`,
@@ -514,7 +523,9 @@ class SpyderInstance extends InstanceBase {
 				this.reg = {}
 				this.script2reg = {}
 				this.sources = {} // keyed by source register id; feeds src_<N> variables and the sra action's dropdown
-				this.variableDefs = {}
+				this.variableDefs = { ...STATIC_VARIABLE_DEFS }
+				this.setVariableDefinitions(this.variableDefs)
+				this.setVariableValues({ LastSave: '' })
 				this.variableValues = {}
 				this.poll()
 				this.pollTimer = setInterval(async () => await this.poll(), this.pollRateMs)

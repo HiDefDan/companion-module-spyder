@@ -40,16 +40,29 @@ Per explicit request, mono font is now applied everywhere, not just
 the per-key presets: `force_server_save`, `cue_rev`, `cue_fwd`, and
 `rrl_refresh_both` are also now `type: 'layered'` with a `bg` box +
 mono `label` text element, matching their previous colors/text exactly
--- no visual change besides the font. `force_server_save`'s
-`sav_last_time` feedback (`type: 'advanced'`) needed its own
-`styleOverrides` entry too, same as `is_selected_key` -- but unlike a
-boolean feedback's static override, an advanced feedback's actual
-shown text still comes from its callback at runtime; this entry's job
-is only declaring which element/property (`label`/`text`, matching
-`affectedProperties` in feedbacks.js) the callback is allowed to
-touch, which is enough to stop the feedback being dropped the same way
-`is_selected_key` was. This specific case (advanced feedback inside a
-layered preset) is reasoned from source, not yet confirmed live.
+-- no visual change besides the font.
+
+**Correction:** the `sav_last_time`-via-`styleOverrides` approach for
+`force_server_save` (reasoned from source, flagged as unconfirmed)
+turned out not to work live -- the button rendered the literal
+placeholder override text, not the feedback's actual callback output.
+Replaced entirely with a new `LastSave` module variable
+(`spyder.js`: a `STATIC_VARIABLE_DEFS` object merged into every
+`variableDefs` rebuild so it survives the command-key/source list
+being wholesale-replaced there, set on every successful `SAV` via
+`getLastSaveTime()`, initialized to `''` on connect) baked directly
+into the preset's label text as `$(spyder:LastSave)` -- the same
+live-variable-in-layered-text mechanism already proven by the per-key
+presets' `cKey_rID_<id>` text, sidestepping the advanced-feedback-in-
+layered-preset question entirely rather than continuing to debug it.
+`force_server_save`'s `feedbacks` array is now empty; `sav_last_time`
+itself is untouched in `feedbacks.js` and still works normally if
+hand-added to any button (the originally-proven use case).
+
+One minor cosmetic side effect: the label is now always 3 lines
+(`<connection label>`, `SAVE`, `$(spyder:LastSave)`) including a blank
+third line before the first save this connection, rather than growing
+from 2 lines to 3 only once there's something to show.
 
 Initially installed 2.2.1, which loaded on this Companion build with
 "Module Api version is too new/old: spyder 2.2.1" -- the base package's
