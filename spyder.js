@@ -276,6 +276,9 @@ class SpyderInstance extends InstanceBase {
 		if (this.layerSource[layer] !== name) {
 			this.layerSource[layer] = name
 			this.checkFeedbacks('layer_source_is')
+			if (layer === this.selectedProtocolId()) {
+				this.refreshSelectedLayerDisplay()
+			}
 		}
 	}
 

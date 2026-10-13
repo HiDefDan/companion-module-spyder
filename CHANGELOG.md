@@ -363,3 +363,17 @@ position: `KPS`/`RLK` round-trip exactly in real pixels both ways.
   a confirmed-comfortable 4-lines-of-11-chars-per-line budget (checked
   against all 24 of this venue's current source names -- the longest,
   22 chars, wraps cleanly at the nearest word boundary on both lines).
+
+### Fixed (Layer Positioning)
+- The display key's source lines weren't updating promptly after a
+  layer was selected -- live-tested, confirmed the `RLS` responses
+  themselves were arriving instantly (not a network/protocol issue),
+  but `setLayerSource()` only updated `this.layerSource` and checked
+  `layer_source_is`; it never called `refreshSelectedLayerDisplay()`.
+  Since `RLK` for the selected layer is queued *after* the full 24-layer
+  `RLS` sweep on each discovery tick, the source line's freshness was
+  accidentally riding on that unrelated RLK call finally landing near
+  the end of the ~60s cycle, rather than updating the moment its own
+  RLS data actually arrived. `setLayerSource` now also calls
+  `refreshSelectedLayerDisplay()` when the layer it just updated is the
+  currently-selected one, same as the existing `RLK` handler does.
