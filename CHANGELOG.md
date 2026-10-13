@@ -71,8 +71,18 @@ not one per commit.
   key -- mirrors the Shotbox's "Read CMD Keys" auto-populate. Kept
   live: regenerated (with an `info` log) whenever the command-key list
   changes, not just at connect. A button already dragged from an
-  older version does not auto-update/auto-remove if its key changes --
-  Companion presets are templates, not live-bound after being placed.
+  older version does not auto-update/auto-remove if its key's
+  RegisterID changes -- Companion presets are templates, not
+  live-bound after being placed. A rename alone does still reach
+  placed buttons, though: the preset's text is the live
+  `cKey_rID_<RegisterID>` variable, not a literal string baked in at
+  drop time.
+- Per-key presets now carry a small baked-in `png64` bezel/indicator
+  graphic (transparent except for a raised keycap-style double border
+  and a thin phosphor-green strip), nodding to the nested-square
+  keycap look in the ST420 Shotbox manual's keyboard layout diagram
+  without reusing anything from it -- generated as SVG and rendered to
+  PNG for this module.
 
 ### Changed
 - All actions now go through `cueCmd` instead of calling `sendCmd`
