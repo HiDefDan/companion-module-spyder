@@ -47,16 +47,35 @@ const FRAME_RATE_FAMILY_HZ = {
 
 // KPS's X/Y deltas for one step in each nudge direction (before scaling by
 // this.nudgeStep) -- Y increases downward, confirmed against RPD/RLK's
-// top-left-origin absolute pixel coordinates.
+// top-left-origin absolute pixel coordinates. Diagonals apply a full step
+// to both axes simultaneously (not magnitude-normalized to match the
+// orthogonal step distance) -- the simpler, more expected behavior for a
+// nudge control, same as arrow-key diagonal movement elsewhere.
 const NUDGE_DELTAS = {
 	up: [0, -1],
 	down: [0, 1],
 	left: [-1, 0],
 	right: [1, 0],
+	upleft: [-1, -1],
+	upright: [1, -1],
+	downleft: [-1, 1],
+	downright: [1, 1],
 }
 
 // Allowed nudge step sizes (px), in cycle order -- see cycle_nudge_step.
 const NUDGE_STEPS = [1, 10, 100]
+
+// Multiplies the base (1px) nudge repeat interval -- live-tested at 1x
+// (interval = 1000/frameRateHz, ~16.67ms at 60Hz) and found too fast for
+// single-pixel precision: a human tap easily lasts 50-200ms, comfortably
+// longer than that interval, so almost every "quick dab" was also
+// triggering several unwanted repeat moves before release could stop it.
+// 4x (user's own estimate, not yet fully live-tested -- their team was
+// using the venue for rehearsal) gives a real grace window between the
+// immediate first move and the first repeat. Scales the whole
+// sqrt(step)-accelerated curve uniformly, not just the 1px case, so the
+// acceleration ratio between step sizes is unchanged.
+const NUDGE_INTERVAL_MULTIPLIER = 4
 
 // Greedy two-line word-wrap for the display key's source-name lines (see
 // companion-expression-text-no-live-refresh memory -- no live scroll, so
@@ -390,7 +409,7 @@ class SpyderInstance extends InstanceBase {
 	startNudge = (direction) => {
 		if (this.nudgeTimers[direction]) return
 		this.doNudge(direction)
-		const intervalMs = (1000 / this.frameRateHz) * Math.sqrt(this.nudgeStep || NUDGE_STEPS[0])
+		const intervalMs = (1000 / this.frameRateHz) * NUDGE_INTERVAL_MULTIPLIER * Math.sqrt(this.nudgeStep || NUDGE_STEPS[0])
 		this.nudgeTimers[direction] = setInterval(() => this.doNudge(direction), intervalMs)
 	}
 

@@ -386,6 +386,114 @@ export function GetPresetDefinitions(self) {
 				},
 			],
 		},
+
+		// Diagonals -- text labels (UL/UR/DL/DR) rather than unicode arrow
+		// glyphs (↖↗↙↘), since those aren't confirmed to render correctly
+		// in Companion's font rendering and the rest of this module's
+		// labeling has deliberately stuck to plain ASCII throughout.
+		nudge_upleft: {
+			type: 'layered',
+			name: 'Nudge Selected Layer: Up-Left',
+			elements: [
+				{ id: 'bg', type: 'box', color: 0x1a1a33 },
+				{
+					id: 'label',
+					type: 'text',
+					text: 'UL',
+					font: 'companion-mono',
+					fontsize: 120,
+					fontsizeAllowShrink: true,
+					color: 0xffffff,
+					halign: 'center',
+					valign: 'center',
+				},
+			],
+			feedbacks: [],
+			steps: [
+				{
+					down: [{ actionId: 'nudge_start', options: { direction: 'upleft' } }],
+					up: [{ actionId: 'nudge_stop', options: { direction: 'upleft' } }],
+				},
+			],
+		},
+
+		nudge_upright: {
+			type: 'layered',
+			name: 'Nudge Selected Layer: Up-Right',
+			elements: [
+				{ id: 'bg', type: 'box', color: 0x1a1a33 },
+				{
+					id: 'label',
+					type: 'text',
+					text: 'UR',
+					font: 'companion-mono',
+					fontsize: 120,
+					fontsizeAllowShrink: true,
+					color: 0xffffff,
+					halign: 'center',
+					valign: 'center',
+				},
+			],
+			feedbacks: [],
+			steps: [
+				{
+					down: [{ actionId: 'nudge_start', options: { direction: 'upright' } }],
+					up: [{ actionId: 'nudge_stop', options: { direction: 'upright' } }],
+				},
+			],
+		},
+
+		nudge_downleft: {
+			type: 'layered',
+			name: 'Nudge Selected Layer: Down-Left',
+			elements: [
+				{ id: 'bg', type: 'box', color: 0x1a1a33 },
+				{
+					id: 'label',
+					type: 'text',
+					text: 'DL',
+					font: 'companion-mono',
+					fontsize: 120,
+					fontsizeAllowShrink: true,
+					color: 0xffffff,
+					halign: 'center',
+					valign: 'center',
+				},
+			],
+			feedbacks: [],
+			steps: [
+				{
+					down: [{ actionId: 'nudge_start', options: { direction: 'downleft' } }],
+					up: [{ actionId: 'nudge_stop', options: { direction: 'downleft' } }],
+				},
+			],
+		},
+
+		nudge_downright: {
+			type: 'layered',
+			name: 'Nudge Selected Layer: Down-Right',
+			elements: [
+				{ id: 'bg', type: 'box', color: 0x1a1a33 },
+				{
+					id: 'label',
+					type: 'text',
+					text: 'DR',
+					font: 'companion-mono',
+					fontsize: 120,
+					fontsizeAllowShrink: true,
+					color: 0xffffff,
+					halign: 'center',
+					valign: 'center',
+				},
+			],
+			feedbacks: [],
+			steps: [
+				{
+					down: [{ actionId: 'nudge_start', options: { direction: 'downright' } }],
+					up: [{ actionId: 'nudge_stop', options: { direction: 'downright' } }],
+				},
+			],
+		},
 	}
 
 	const commandKeyIds = []
@@ -480,6 +588,10 @@ export function GetPresetDefinitions(self) {
 				'nudge_down',
 				'nudge_left',
 				'nudge_right',
+				'nudge_upleft',
+				'nudge_upright',
+				'nudge_downleft',
+				'nudge_downright',
 			],
 		},
 	]

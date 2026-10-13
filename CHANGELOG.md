@@ -452,3 +452,26 @@ phase.
 - A scrolling/marquee text display was explicitly NOT reattempted here
   for any of this -- see the Select Target phase's entry above and
   `companion-expression-text-no-live-refresh` memory.
+
+### Fixed (Layer Positioning)
+- Live-tested the nudge repeat interval (`(1000/frameRateHz) *
+  sqrt(step)`, ~16.67ms at 60Hz for 1px) and found it too fast for
+  single-pixel precision -- a human tap easily lasts 50-200ms,
+  comfortably longer than that interval, so almost every "quick dab"
+  was also triggering several unwanted repeat moves before release
+  could register. Added a `NUDGE_INTERVAL_MULTIPLIER` (4x, the user's
+  own estimate -- not yet fully live-tested, their team was using the
+  venue for rehearsal) applied uniformly across the whole
+  `sqrt(step)`-accelerated curve, not just the 1px case, so the
+  acceleration ratio between step sizes is unchanged, just the whole
+  thing slower. Easy to re-tune as a single constant once it can be
+  properly tested.
+- Added diagonal nudge directions (`upleft`/`upright`/`downleft`/
+  `downright`) -- present in a prior tool the user built for the same
+  kind of layer-nudging work, missed in the first pass here. Applies a
+  full step to both axes simultaneously (not magnitude-normalized to
+  match the orthogonal step distance) -- simpler and more expected than
+  trigonometric normalization. Four new presets (`UL`/`UR`/`DL`/`DR`
+  text labels, not unicode arrow glyphs -- unconfirmed whether those
+  render correctly in Companion's font rendering, and the rest of this
+  module's labeling has deliberately stuck to plain ASCII throughout).
