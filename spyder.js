@@ -501,6 +501,34 @@ class SpyderInstance extends InstanceBase {
 		this.refreshSelectedLayerDisplay()
 	}
 
+	// Places the selected layer's clone at an exact absolute X pixel,
+	// computed (not nudged/estimated) from this layer's own real cached
+	// position: offset = targetX - layerX, since LCC's absolute-pixel
+	// Offset is added to the original layer's own KPS position to derive
+	// the clone's rendered position. This is deliberately more precise
+	// than Spyder Studio's own clone UI, which only exposes a relative
+	// offset to 3 decimal places -- far too coarse to land on a specific
+	// pixel (each 0.001 step there is ~half the pixelspace width / 1000,
+	// several pixels on an 11552-wide canvas) and doesn't expose an
+	// absolute mode for clones at all. Sends a single explicit 4-arg LCC
+	// (Mode=1/Offset, real computed offset, OffsetType=0/Absolute) rather
+	// than requiring the Clone button's arm/cycle dance first.
+	setCloneAbsoluteX = async (targetX) => {
+		const layerId = this.selectedProtocolId()
+		const pos = this.layerPos[layerId]
+		if (!pos) {
+			this.log('warn', `setCloneAbsoluteX: layer ${layerId}'s own position isn't known yet (waiting for RLK) -- can't compute an offset from it`)
+			return
+		}
+		const offset = targetX - pos.x
+		await this.queueCmd(`LCC ${layerId} 1 ${offset} 0`)
+		this.cloneMode[layerId] = '1'
+		this.targetFunction = 'clone'
+		this.cloneArmed = true
+		this.refreshSelectedLayerDisplay()
+		this.checkFeedbacks('is_target_function')
+	}
+
 	// 'HH:MM' (local time, Companion host's clock) of the last SAV that got
 	// a Success response, or undefined if there hasn't been one this
 	// connection -- see the 'SAV' case in the data handler.

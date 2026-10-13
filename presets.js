@@ -548,6 +548,30 @@ export function GetPresetDefinitions(self) {
 			],
 			steps: [{ down: [{ actionId: 'cycle_clone_mode', options: {} }], up: [] }],
 		},
+
+		// Draggable starting point for set_clone_absolute_x -- target X
+		// defaults to 0, edit it per-button once placed (same as any
+		// other Companion action needing a custom parameter).
+		set_clone_absolute_x: {
+			type: 'layered',
+			name: 'Clone: Set Absolute X Position',
+			elements: [
+				{ id: 'bg', type: 'box', color: 0x330033 },
+				{
+					id: 'label',
+					type: 'text',
+					text: 'CLONE\nSET X',
+					font: 'companion-mono',
+					fontsize: 100,
+					fontsizeAllowShrink: true,
+					color: 0xffffff,
+					halign: 'center',
+					valign: 'center',
+				},
+			],
+			feedbacks: [],
+			steps: [{ down: [{ actionId: 'set_clone_absolute_x', options: { targetX: 0 } }], up: [] }],
+		},
 	}
 
 	const commandKeyIds = []
@@ -648,6 +672,7 @@ export function GetPresetDefinitions(self) {
 				'nudge_downright',
 				'select_target_pos',
 				'cycle_clone_mode',
+				'set_clone_absolute_x',
 			],
 		},
 	]

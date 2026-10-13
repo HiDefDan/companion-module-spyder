@@ -579,3 +579,19 @@ Mirror a sensible "boolean trigger" on its own.
   `select_target_pos` all reset it) now only arms `targetFunction`
   against whatever the layer's real mode already is, sending nothing.
   Only a press while already armed actually cycles to the next mode.
+
+### Added (Layer Positioning)
+- `set_clone_absolute_x` action + preset: places the selected layer's
+  clone at an exact absolute X pixel in one step, computed (not
+  nudged/estimated) as `targetX - <layer's own cached X>` -- real,
+  because LCC's absolute-pixel Offset is added to the original layer's
+  own KPS position to derive where the clone actually renders. Sends a
+  single explicit `LCC <layer> 1 <offset> 0` (Mode=1/Offset, real
+  computed offset, OffsetType=0/Absolute), not dependent on the Clone
+  button's arm/cycle flow. Motivated by a concrete real case: Spyder
+  Studio's own clone UI only exposes a relative offset to 3 decimal
+  places, nowhere near precise enough to land on a specific pixel on
+  an 11552px-wide pixelspace (each 0.001 step there is several px), and
+  has no absolute mode for clones at all -- this module's own LCC
+  absolute-pixel write (already confirmed accepted live) closes that
+  gap with exact pixel precision instead.

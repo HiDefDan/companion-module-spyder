@@ -555,5 +555,21 @@ export function compileActionDefinitions(self) {
 				await self.cycleCloneMode()
 			},
 		},
+
+		'set_clone_absolute_x': {
+			name: 'Clone: Set Absolute X Position',
+			options: [
+				{
+					type: 'textinput',
+					label: 'Target X (absolute px, this pixelspace)',
+					id: 'targetX',
+					default: 0,
+					regex: Regex.SIGNED_NUMBER,
+				},
+			],
+			callback: async (action) => {
+				await self.setCloneAbsoluteX(Number(action.options.targetX))
+			},
+		},
 	}
 }
