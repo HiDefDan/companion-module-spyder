@@ -29,8 +29,8 @@ export function GetFeedbackDefinitions(self) {
 				'Highlights when this is the Command Key last recalled via "Recall Command Key at Cue". ' +
 				'Local memory only, not read back from Spyder.',
 			defaultStyle: {
-				bgcolor: combineRgb(200, 0, 0),
-				color: 16777215,
+				bgcolor: combineRgb(255, 159, 64),
+				color: combineRgb(0, 0, 0),
 				size: 14,
 			},
 			options: [

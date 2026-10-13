@@ -150,3 +150,8 @@ not one per commit.
   text-size field, which is numeric-only). Without a resolvable
   number there, that field showed `NaN`, and applying the feedback
   blanked the button's background/text once it went true.
+- `is_selected_key`'s `defaultStyle` colors changed from red bg/white
+  text to orange bg (`0xff9f40`)/black text, pulled directly from an
+  exported Companion config of a button the user hand-styled -- the
+  prior red/white combo (chosen without that reference) looked wrong
+  against this module's generated preset/base styling.

@@ -8,3 +8,6 @@ DEBUG-PACKAGE
 
 # Reference material, not part of the module
 /docs/
+
+# Exported Companion configs used as styling/testing reference, not part of the module
+*.companionconfig
