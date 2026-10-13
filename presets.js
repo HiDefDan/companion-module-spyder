@@ -226,7 +226,7 @@ export function GetPresetDefinitions(self) {
 					fontsizeAllowShrink: false,
 					color: 0xffffff,
 					halign: 'center',
-					valign: 'center',
+					valign: 'top',
 				},
 				{
 					id: 'pos',

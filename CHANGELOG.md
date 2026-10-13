@@ -498,3 +498,7 @@ phase.
   dangling blank second line) and one preset text element (`label`,
   `x:5 y:25 w:90 h:50`, `companion-mono` size 38, no shrink) instead of
   two stacked elements each with their own size/shrink behavior.
+- That same `label` element's `valign` changed `center` -> `top`, so a
+  short (1-line) source name starts at the same vertical position as a
+  long (2-line) one instead of floating differently depending on how
+  much text there is.
