@@ -143,9 +143,10 @@ not one per commit.
   `RLC` bounds check above.
 
 ### Fixed
-- `is_selected_key`'s `defaultStyle` now includes `size: 'auto'`,
-  matching the per-key presets it's pre-wired onto. Without it,
-  Companion's per-feedback style-override panel couldn't resolve a
-  numeric text size from the preset's `'auto'` size (showing `NaN` in
-  that field), and applying it blanked the button's background/text
-  once the feedback went true.
+- `is_selected_key`'s `defaultStyle` now includes an explicit numeric
+  `size: 14` instead of leaving it unset (an earlier attempt at this
+  fix used `size: 'auto'`, which is valid for a button's own Style
+  tab but not for Companion's per-feedback "Layered Styles Overrides"
+  text-size field, which is numeric-only). Without a resolvable
+  number there, that field showed `NaN`, and applying the feedback
+  blanked the button's background/text once it went true.

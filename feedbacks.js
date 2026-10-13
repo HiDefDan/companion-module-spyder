@@ -31,7 +31,7 @@ export function GetFeedbackDefinitions(self) {
 			defaultStyle: {
 				bgcolor: combineRgb(200, 0, 0),
 				color: 16777215,
-				size: 'auto',
+				size: 14,
 			},
 			options: [
 				{
