@@ -65,16 +65,21 @@ const NUDGE_DELTAS = {
 // Allowed nudge step sizes (px), in cycle order -- see cycle_nudge_step.
 const NUDGE_STEPS = [1, 10, 100]
 
-// Multiplies the base (1px) nudge repeat interval -- live-tested at 1x
-// (interval = 1000/frameRateHz, ~16.67ms at 60Hz) and found too fast for
-// single-pixel precision: a human tap easily lasts 50-200ms, comfortably
-// longer than that interval, so almost every "quick dab" was also
-// triggering several unwanted repeat moves before release could stop it.
-// 4x (~66.7ms at 60Hz) was tried next and still reported too fast. 15x
-// (~250ms at 60Hz, user-specified) tried third. Scales the whole
-// sqrt(step)-accelerated curve uniformly, not just the 1px case, so the
-// acceleration ratio between step sizes is unchanged.
-const NUDGE_INTERVAL_MULTIPLIER = 15
+// Flat per-tick nudge repeat interval -- NOT scaled by step size or by
+// the cached RSF frame rate. Went through a few live-tested iterations
+// first: 1000/frameRateHz (~16.67ms at 60Hz) was too fast for a clean
+// single-pixel dab (a human tap easily lasts 50-200ms, comfortably
+// longer than that), a 4x multiplier (~66.7ms) was still too fast, 15x
+// (~250ms) finally worked for dabbing -- but scaling that by sqrt(step)
+// for bigger steps was then reconsidered as unnecessary complexity: a
+// FLAT interval already gives a huge effective speed difference between
+// step sizes for free (100px covers 100x the distance of 1px on an
+// identical tick), without needing a frame-rate-derived curve on top,
+// and keeps dab precision identical regardless of which step size is
+// selected. Tap-duration precision has nothing to do with the Spyder's
+// video frame rate, so decoupling this from this.frameRateHz entirely
+// (still cached for its own sake, just no longer used here).
+const NUDGE_REPEAT_INTERVAL_MS = 250
 
 // Greedy two-line word-wrap for the display key's source-name lines (see
 // companion-expression-text-no-live-refresh memory -- no live scroll, so
@@ -400,16 +405,14 @@ class SpyderInstance extends InstanceBase {
 
 	// Starts (or no-ops if already running) the repeat timer for one nudge
 	// direction -- sends one move immediately (so a quick tap isn't delayed
-	// behind the first interval tick), then repeats at an interval derived
-	// from the cached RSF-reported frame rate, scaled by sqrt(step) so
-	// bigger steps genuinely move faster overall (real acceleration)
-	// without simply multiplying the raw command rate by the step size
-	// (which is what actually risked "shooting out of the pixelspace").
+	// behind the first interval tick), then repeats at the flat
+	// NUDGE_REPEAT_INTERVAL_MS regardless of step size (see its comment --
+	// step size alone already gives bigger steps a proportionally faster
+	// effective speed on an identical tick, no extra curve needed).
 	startNudge = (direction) => {
 		if (this.nudgeTimers[direction]) return
 		this.doNudge(direction)
-		const intervalMs = (1000 / this.frameRateHz) * NUDGE_INTERVAL_MULTIPLIER * Math.sqrt(this.nudgeStep || NUDGE_STEPS[0])
-		this.nudgeTimers[direction] = setInterval(() => this.doNudge(direction), intervalMs)
+		this.nudgeTimers[direction] = setInterval(() => this.doNudge(direction), NUDGE_REPEAT_INTERVAL_MS)
 	}
 
 	stopNudge = (direction) => {

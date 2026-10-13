@@ -478,3 +478,14 @@ phase.
 - 4x still reported too fast for a clean single-pixel dab. Bumped
   `NUDGE_INTERVAL_MULTIPLIER` to 15 (user-specified exact figure: 250ms
   at the 60Hz family) rather than guessing another multiplier blind.
+- Reconsidered the `sqrt(step)`-scaled curve entirely once 250ms worked
+  for 1px: a flat interval across all step sizes already gives a huge
+  effective speed difference for free (a 100px step covers 100x the
+  distance of a 1px step on an identical tick), so the extra
+  frame-rate-derived curve was unnecessary complexity on top, and tap
+  precision has nothing to do with the Spyder's video frame rate in the
+  first place. Replaced `NUDGE_INTERVAL_MULTIPLIER`/`frameRateHz`-based
+  math with a single flat `NUDGE_REPEAT_INTERVAL_MS = 250` used for
+  every step size. `this.frameRateHz`/`RSF` caching is unaffected and
+  still runs (connect/periodic/"Refresh Data") -- just no longer
+  consumed by nudge timing.
