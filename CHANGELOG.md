@@ -8,16 +8,29 @@ not one per commit.
 
 ## [Unreleased]
 
-### Migration: @companion-module/base 1.14.1 -> 2.2.1 (API v2)
+### Migration: @companion-module/base 1.14.1 -> 2.1.3 (API v2)
 Phase 1 of a two-phase upgrade -- gets the module running on the new major
 API with equivalent behavior to before. Phase 2 (separate, not done yet)
 converts the per-key presets to the new "layered" graphics preset format
 so they can set a font, which only exists on that path (see below).
 
-- `package.json`: `@companion-module/base` ^1.8.0 -> ^2.2.1,
-  `@companion-module/tools` ^2.8.0 -> ^3.1.1 (required for the 2.2.1
-  manifest validator to even load -- 2.8.0 imports `validateManifest`
-  from a path 2.2.1 no longer exports it from).
+Initially installed 2.2.1, which loaded on this Companion build with
+"Module Api version is too new/old: spyder 2.2.1" -- the base package's
+own README has a Companion<->module-base compatibility table that says
+Companion v5.0 supports module-base v1.0-v2.1 only; v2.2 needs v5.1
+(itself listed "unconfirmed" there). Downgraded to 2.1.3 (the latest
+2.1.x), pinned with `~2.1.3` rather than `^2.1.3` so a future install
+can't silently drift back into the unsupported 2.2.x line. Diffed every
+relevant .d.ts between 2.1.3 and 2.2.1 before downgrading -- identical
+except `color`/`bgcolor` typed as plain `number` (2.1.3) vs `number |
+string` (2.2.1, both still accept the numbers this module uses) and two
+2.2-only preset additions this module doesn't use (`notes`,
+`storeResult`) -- so no code changes were needed beyond the version bump.
+
+- `package.json`: `@companion-module/base` ^1.8.0 -> ~2.1.3,
+  `@companion-module/tools` ^2.8.0 -> ^3.1.1 (required for the manifest
+  validator to even load -- 2.8.0 imports `validateManifest` from a path
+  2.1.3/2.2.1 no longer export it from).
 - `companion/manifest.json`: added required top-level `"type":
   "connection"`; `runtime.type` "node18" -> "node26" (node26 "corresponds
   to Companion 5.0" per Bitfocus's own docs, and the live server here is
