@@ -320,17 +320,21 @@ class SpyderInstance extends InstanceBase {
 	// there's never more than one candidate for it to match against. Call
 	// this (not sendCmd directly) from anywhere that might run while
 	// something else could already be in flight.
-	queueCmd = async (cmd) => {
-		if (cmd !== undefined) {
+	// nextCmd entries are a command string, or {cmd, quiet} for routine
+	// per-tick polls whose send/receive lines should log at debug level.
+	queueCmd = async (entry) => {
+		if (entry !== undefined) {
 			if (this.pending.length) {
-				this.nextCmd.push(cmd)
+				this.nextCmd.push(entry)
+			} else if (typeof entry === 'object') {
+				await this.sendCmd(entry.cmd, entry.quiet)
 			} else {
-				await this.sendCmd(cmd)
+				await this.sendCmd(entry)
 			}
 		}
 	}
 
-	sendCmd = async (cmd) => {
+	sendCmd = async (cmd, quiet = false) => {
 		const now = Date.now()
 		let c = cmd.split(' ')
 		if (c[2] != '-1') {
@@ -342,11 +346,11 @@ class SpyderInstance extends InstanceBase {
 
 		if (this.udp !== undefined) {
 			const packet = buildPacket(cmd)
-			this.log('info', `Sending: ${describeCmd(cmd)}`)
+			this.log(quiet ? 'debug' : 'info', `Sending: ${describeCmd(cmd)}`)
 			this.log('debug', `Sending hex: ${packet.toString('hex')}`)
 			await this.udp.sendAsync(packet)
 			// save cmd for to store with next incoming response
-			this.pending.push({ cmd: c, sent: now })
+			this.pending.push({ cmd: c, sent: now, quiet })
 			this.lastCmd = cmd
 		}
 	}
@@ -678,7 +682,7 @@ class SpyderInstance extends InstanceBase {
 				const resultCode = msg.slice(0, 1)
 				const resultName = RESULT_CODE_NAMES[resultCode] ?? `Unknown code ${resultCode}`
 				this.log(
-					resultCode === '0' || resultCode === '1' ? 'info' : 'warn',
+					resultCode === '0' || resultCode === '1' ? (cmd.quiet ? 'debug' : 'info') : 'warn',
 					`Received for ${describeCmd(cmd.cmd)}: ${resultName} -- ${describeResponseBody(cmds, resultCode, msg)}`,
 				)
 
@@ -1017,8 +1021,8 @@ class SpyderInstance extends InstanceBase {
 				// Skipped while anything is in flight so it never queues up behind
 				// (or ahead of) other traffic. RLK is queued first so the RLS
 				// response handler chains straight into it.
-				this.nextCmd.push(`RLK ${this.selectedProtocolId()}`)
-				await this.queueCmd(`RLS ${this.selectedProtocolId()}`)
+				this.nextCmd.push({ cmd: `RLK ${this.selectedProtocolId()}`, quiet: true })
+				await this.queueCmd({ cmd: `RLS ${this.selectedProtocolId()}`, quiet: true })
 			}
 		}
 	}

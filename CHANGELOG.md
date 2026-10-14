@@ -18,6 +18,13 @@ not one per commit.
 - **Nudge arrows use the default font.** The diagonal glyphs don't
   render in `companion-mono` (confirmed live); the `font` field is
   omitted on all 8 arrow labels so they fall back to the default.
+- **Per-tick polls log at debug, not info.** The selected layer's
+  `RLS`/`RLK` send and receive lines are now debug-level, so the info log
+  only shows real traffic (sweeps, selection, nudges, other commands).
+  Error responses still log at warn. Implemented as an optional `quiet`
+  flag carried by a queued command (`{cmd, quiet}` in `nextCmd`, a
+  `quiet` param on `sendCmd`, stored on the `pending` entry). Live-tested
+  at a 500ms poll interval: info log stays quiet.
 - **`Received hex:` debug log line** on every incoming packet, matching
   the existing `Sending hex:` line.
 - Investigated (no code change): a layer reported at X=-1 while Spyder
