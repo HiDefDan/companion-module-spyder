@@ -659,6 +659,7 @@ class SpyderInstance extends InstanceBase {
 			})
 
 			this.udp.on('data', async (data) => {
+				this.log('debug', `Received hex: ${data.toString('hex')}`)
 				let msg = data.toString()
 				let cmd = this.pending.shift()
 				if (cmd == undefined) {
@@ -976,8 +977,9 @@ class SpyderInstance extends InstanceBase {
 				}
 			}
 		} else {
-			// Layer-source checks (RLS) now only happen on this same slow
-			// discovery cadence -- a periodic drift-correction safety net for
+			// Layer-source checks (RLS) for all layers only happen on this slow
+			// discovery cadence (the selected layer alone is also checked every
+			// tick, below) -- a periodic drift-correction safety net for
 			// changes made outside this module (Spyder console, a script,
 			// FKR...) -- or immediately after an 'sra' action targets a
 			// specific layer (see actions.js). Polling every real layer every
@@ -1008,8 +1010,16 @@ class SpyderInstance extends InstanceBase {
 				await this.queueCmd(cmd)
 				this.lastCount = 0
 				this.saveLast = cmd
+			} else if (!this.pending.length) {
+				// Selected layer's source (RLS) and position/clone state (RLK),
+				// every tick -- the display/Clone keys shouldn't lag up to a
+				// discovery interval behind a change made outside this module.
+				// Skipped while anything is in flight so it never queues up behind
+				// (or ahead of) other traffic. RLK is queued first so the RLS
+				// response handler chains straight into it.
+				this.nextCmd.push(`RLK ${this.selectedProtocolId()}`)
+				await this.queueCmd(`RLS ${this.selectedProtocolId()}`)
 			}
-			// else: not a discovery tick -- nothing to poll this time around.
 		}
 	}
 	// Return config fields for web config

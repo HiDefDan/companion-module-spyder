@@ -280,9 +280,9 @@ export function GetPresetDefinitions(self) {
 
 		// Eight directions, each a simple bg+arrow label. Unicode glyphs
 		// (same "Arrows" block, U+2190-U+2199, so all 8 share one visual
-		// family/stroke-weight) -- user-specified after confirming the
-		// diagonals render fine in companion-mono; an earlier version of
-		// this module avoided them for being unconfirmed, no longer true.
+		// family/stroke-weight). No `font` on these labels: the diagonals
+		// don't render in companion-mono (confirmed live), only in the
+		// default font.
 		// nudge_start fires on down (immediate first move + starts the
 		// repeat timer while held), nudge_stop (same direction) fires on up
 		// (stops the repeat timer). See spyder.js's
@@ -302,7 +302,6 @@ export function GetPresetDefinitions(self) {
 					id: 'label',
 					type: 'text',
 					text: '↑',
-					font: 'companion-mono',
 					fontsize: 150,
 					fontsizeAllowShrink: true,
 					color: 0xffffff,
@@ -339,7 +338,6 @@ export function GetPresetDefinitions(self) {
 					id: 'label',
 					type: 'text',
 					text: '↓',
-					font: 'companion-mono',
 					fontsize: 150,
 					fontsizeAllowShrink: true,
 					color: 0xffffff,
@@ -376,7 +374,6 @@ export function GetPresetDefinitions(self) {
 					id: 'label',
 					type: 'text',
 					text: '←',
-					font: 'companion-mono',
 					fontsize: 150,
 					fontsizeAllowShrink: true,
 					color: 0xffffff,
@@ -413,7 +410,6 @@ export function GetPresetDefinitions(self) {
 					id: 'label',
 					type: 'text',
 					text: '→',
-					font: 'companion-mono',
 					fontsize: 150,
 					fontsizeAllowShrink: true,
 					color: 0xffffff,
@@ -450,7 +446,6 @@ export function GetPresetDefinitions(self) {
 					id: 'label',
 					type: 'text',
 					text: '↖',
-					font: 'companion-mono',
 					fontsize: 120,
 					fontsizeAllowShrink: true,
 					color: 0xffffff,
@@ -487,7 +482,6 @@ export function GetPresetDefinitions(self) {
 					id: 'label',
 					type: 'text',
 					text: '↗',
-					font: 'companion-mono',
 					fontsize: 120,
 					fontsizeAllowShrink: true,
 					color: 0xffffff,
@@ -524,7 +518,6 @@ export function GetPresetDefinitions(self) {
 					id: 'label',
 					type: 'text',
 					text: '↙',
-					font: 'companion-mono',
 					fontsize: 120,
 					fontsizeAllowShrink: true,
 					color: 0xffffff,
@@ -561,7 +554,6 @@ export function GetPresetDefinitions(self) {
 					id: 'label',
 					type: 'text',
 					text: '↘',
-					font: 'companion-mono',
 					fontsize: 120,
 					fontsizeAllowShrink: true,
 					color: 0xffffff,

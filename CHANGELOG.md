@@ -8,6 +8,25 @@ not one per commit.
 
 ## [Unreleased]
 
+### Selected layer polled every tick; arrow font; received-hex log
+- **Selected layer now refreshed every poll tick** (default 2.5s):
+  `RLS` (source) then `RLK` (position, clone mode/offset), sent only
+  when nothing is in flight. Previously both only ran on the 60s
+  discovery sweep, so a change made in Spyder Studio took up to a
+  minute to show on the display/Clone keys. Live-tested: position
+  changes made in Studio now show promptly.
+- **Nudge arrows use the default font.** The diagonal glyphs don't
+  render in `companion-mono` (confirmed live); the `font` field is
+  omitted on all 8 arrow labels so they fall back to the default.
+- **`Received hex:` debug log line** on every incoming packet, matching
+  the existing `Sending hex:` line.
+- Investigated (no code change): a layer reported at X=-1 while Spyder
+  Studio showed 0. Spyder stores layer position as the centre point, so
+  an odd width/height puts the top-left on a half pixel. `RLK`'s integer
+  X/Y is the floor of that, which matches what's actually rendered;
+  Studio's own position field rounds up and can read 1px high on
+  odd-sized layers.
+
 ### Styling/UX pass on the layer-positioning feature
 Four fixes/changes after live-testing the Phase 1-3 feature, all design
 decisions made with the user before building (colour batching, button
